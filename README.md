@@ -16,7 +16,7 @@ Userme gives you a bunch of API services for basic account creation, token valid
 
 ## Rest API
 
-* PUT /user/email
+* PUT /user/:email
   * request body json: name, password
   * response status
     * 201 - user created and activated
@@ -39,7 +39,7 @@ Userme gives you a bunch of API services for basic account creation, token valid
 
 * POST /user/:email/reset-password
   * response status
-    * 202 - password reset request accepted (maybe mail doesn't exist and email won't be sent, but we don't want to give this clue to abusers ;), so this kind of details can be accessed only on server logs)
+    * 202 - password reset request accepted (maybe email doesn't exist and email won't be sent, but we don't want to give this clue to abusers ;), so this kind of details can be accessed only on server logs)
     * 500 - server error
 
 * POST /user/:mail/change-password
