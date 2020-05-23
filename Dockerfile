@@ -23,7 +23,8 @@ ENV ACCESS_TOKEN_DEFAULT_SCOPE       'basic'
 ENV MAX_INCORRECT_PASSWORD_RETRIES   '5'
 ENV ACCOUNT_ACTIVATION_METHOD        'direct'
 ENV PASSWORD_VALIDATION_REGEX         ^.{6,30}$
-ENV JWT_PK_FILE                      '/secrets/jwtpk'
+ENV JWT_PRIVATE_KEY_FILE             '/secrets/jwt-private-key'
+ENV MASTER_PUBLICKEY_FILE            '/secrests/master-public-key'
 
 ENV DB_DIALECT  'mysql'
 ENV DB_HOST     ''
