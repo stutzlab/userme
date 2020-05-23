@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+
+  userme:
+    build: .
+    image: flaviostutz/userme
+    environment:
+      - LOG_LEVEL=debug
+
+  sut:
+    build: tests/.
+    environment:
+      - SFS_URL=http://userme:6000
+      - WAIT_TIME_SECONDS=5
+      - WAIT_CONNECT_HOST=userme
+      - WAIT_CONNECT_PORT=6000
+    depends_on:
+      - userme
+
