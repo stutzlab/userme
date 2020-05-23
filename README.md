@@ -42,6 +42,15 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 202 - password reset request accepted (maybe mail doesn't exist and email won't be sent, but we don't want to give this clue to abusers ;), so this kind of details can be accessed only on server logs)
     * 500 - server error
 
+* POST /user/:mail/change-password
+  * resquest header: Bearer <access token>
+  * request body json: currentPassword, newPassword
+  * response status:
+    * 200 - password changed successfuly
+    * 450 - wrong current password (this will be used to indicate that the email doesn't exist too)
+    * 460 - invalid new password
+    * 500 - server error
+
 * POST /token
   * request json body: email, password
   * response status
@@ -57,15 +66,6 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 450 - token invalid
     * 500 - server error
   * response body json: name, email, expirationDate, claims[]
-
-* POST /user/:mail/change-password
-  * resquest header: Bearer <access token>
-  * request body json: currentPassword, newPassword
-  * response status:
-    * 200 - password changed successfuly
-    * 450 - wrong current password (this will be used to indicate that the email doesn't exist too)
-    * 460 - invalid new password
-    * 500 - server error
 
 
 ## ENVs
