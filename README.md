@@ -1,8 +1,8 @@
 # userme
 Userme gives you a bunch of API services for basic account creation, token validation, user authentication, password reset, mail validation etc
 
-<img src="signup.png" width="400" />
-<img src="signin.png" width="400" />
+<img src="signup.png" width="700" />
+<img src="signin.png" width="700" />
 
 ## Basics
 
