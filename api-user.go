@@ -27,9 +27,6 @@ func createUser() func(*gin.Context) {
 		email := strings.ToLower(c.Param("email"))
 		logrus.Debugf("createUser email=%s", email)
 
-		// * 201 - user created and activated
-		// * 250 - user created and activation link sent to email
-
 		m := make(map[string]string)
 		data, _ := ioutil.ReadAll(c.Request.Body)
 		err := json.Unmarshal(data, &m)
@@ -137,6 +134,10 @@ func createUser() func(*gin.Context) {
 			mailCounter.WithLabelValues("500").Inc()
 			return
 		}
-		mailCounter.WithLabelValues("200").Inc()
+
+		logrus.Debugf("Account created and activation link sent to email %s", email)
+		c.JSON(250, gin.H{"message": "Account created and activation link sent to email"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "250").Inc()
+		return
 	}
 }
