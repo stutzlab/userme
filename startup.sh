@@ -12,12 +12,16 @@ userme \
      --db-name=$DB_NAME \
      \
      --cors-allowed-origins=$CORS_ALLOWED_ORIGINS \
-     --token-expiration-minutes=$TOKEN_EXPIRATION_MINUTES \
-     --token-default-scope=$TOKEN_DEFAULT_SCOPE \
-     --max-incorrect-retries=$MAX_INCORRECT_PASSWORD_RETRIES \
+     --accesstoken-expiration-minutes=$ACCESS_TOKEN_EXPIRATION_MINUTES \
+     --refreshtoken-expiration-minutes=$REFRESH_TOKEN_EXPIRATION_MINUTES \
+     --accesstoken-default-scope=$ACCESS_TOKEN_DEFAULT_SCOPE \
+     --password-retries-max=$INCORRECT_PASSWORD_MAX_RETRIES \
+     --password-retries-time=$INCORRENT_PASSWORD_TIME_SECONDS \
      --account-activation-method=$ACCOUNT_ACTIVATION_METHOD \
      --password-validation-regex=$PASSWORD_VALIDATION_REGEX \
-     --jwt-pk-file=$JWT_PK_FILE \
+     --jwt-signing-key-file=$JWT_SIGNING_KEY_FILE \
+     --jwt-signing-method=$JWT_SIGNING_METHOD \
+     --master-public-key-file=$MASTER_PUBLIC_KEY_FILE \
      \
      --mail-smtp-host=$MAIL_SMTP_HOST \
      --mail-smtp-port=$MAIL_SMTP_PORT \

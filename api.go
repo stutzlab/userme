@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,11 +20,19 @@ type HTTPServer struct {
 	router *gin.Engine
 }
 
-var apiInvocationsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+var invocationCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name: "api_invocations_total",
 	Help: "Total api requests served",
 }, []string{
-	"entity",
+	"method",
+	"path",
+	"status",
+})
+
+var mailCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "mail_sent_total",
+	Help: "Total e-mails sent",
+}, []string{
 	"status",
 })
 
@@ -45,7 +54,8 @@ func NewHTTPServer() *HTTPServer {
 		Handler: router,
 	}, router: router}
 
-	prometheus.MustRegister(apiInvocationsCounter)
+	prometheus.MustRegister(invocationCounter)
+	prometheus.MustRegister(mailCounter)
 
 	logrus.Infof("Initializing HTTP Handlers...")
 	h.setupUserHandlers()
@@ -60,4 +70,13 @@ func NewHTTPServer() *HTTPServer {
 func (s *HTTPServer) Start() error {
 	logrus.Infof("Starting HTTP Server on port 6000")
 	return s.server.ListenAndServe()
+}
+
+func validateField(m map[string]string, fieldName string, regex string) bool {
+	v, exists := m[fieldName]
+	if !exists {
+		return false
+	}
+	re := regexp.MustCompile(regex)
+	return re.MatchString(v)
 }

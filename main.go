@@ -1,26 +1,36 @@
 package main
 
 import (
+	"crypto/rsa"
 	"flag"
+	"io/ioutil"
 	"os"
 
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 )
 
 type options struct {
-	dbDialect  string
-	dbHost     string
-	dbPort     int
-	dbUsername string
-	dbPassword string
-	dbName     string
+	logLevel     string
+	dbDialect    string
+	dbHost       string
+	dbPort       int
+	dbUsername   string
+	dbPassword   string
+	dbName       string
+	dbSqliteFile string
 
 	corsAllowedOrigins                   string
 	accessTokenDefaultExpirationMinutes  int
 	refreshTokenDefaultExpirationMinutes int
 	accessTokenDefaultScope              string
-	jwtPKFile                            string
-	maxIncorrectPasswordRetries          int
+	jwtSigningMethod                     string
+	jwtSigningKeyFile                    string
+	jwtSigningKey                        *rsa.PrivateKey
+	masterPublicKeyFile                  string
+	passwordRetriesMax                   int
+	passwordRetriesTimeSeconds           int
 	accountActivationMethod              string
 	passwordValidationRegex              string
 
@@ -35,7 +45,10 @@ type options struct {
 	mailResetPasswordHTMLBody string
 }
 
-var opt options
+var (
+	opt options
+	db  *gorm.DB
+)
 
 func main() {
 	logLevel := flag.String("loglevel", "debug", "debug, info, warning, error")
@@ -46,15 +59,19 @@ func main() {
 	dbUsername0 := flag.String("db-username", "userme", "Database username. defaults to 'userme'")
 	dbPassword0 := flag.String("db-password", "", "Database password")
 	dbName0 := flag.String("db-name", "userme", "Database name. defaults to 'userme'")
+	dbSqliteFile0 := flag.String("db-sqlite-file", "/data/userme.db", "SQLite file path location")
 
 	corsAllowedOrigins0 := flag.String("cors-allowed-origins", "*", "Cors allowed origins for this server. defaults to '*' (not recommended for production)")
 	accessTokenDefaultExpirationMinutes0 := flag.Int("acesstoken-expiration-minutes", 480, "Default access token expiration age")
 	refreshTokenDefaultExpirationMinutes0 := flag.Int("refreshtoken-expiration-minutes", 40320, "Default refresh token expiration age")
 	accessTokenDefaultScope0 := flag.String("accesstoken-default-scope", "basic", "Default claim (scope) added to all access tokens")
-	jwtPKFile0 := flag.String("jwt-pk-file", "", "Private key file used to sign tokens. Tokens may be later validated by thirdy parties by checking the signature with related public key")
-	maxIncorrectPasswordRetries0 := flag.Int("max-incorrect-retries", 5, "Max number of incorrect password retries")
+	passwordRetriesMax0 := flag.Int("password-retries-max", 5, "Max number of incorrect password retries")
+	passwordRetriesTimeSeconds0 := flag.Int("password-retries-time", 5, "Max number of incorrect password retries")
 	accountActivationMethod0 := flag.String("account-activation-method", "direct", "Activation method for new accounts. One of 'direct' (no additional steps needed) or 'mail' (send e-mail with activation link to user). Defaults to 'direct'")
 	passwordValidationRegex0 := flag.String("password-validation-regex", "^.{6,30}$", "Password validation regex. Defaults to '^.{6,30}$'")
+	jwtSigningMethod0 := flag.String("jwt-signing-method", "", "JWT signing method. defaults to 'EC256'")
+	jwtSigningKeyFile0 := flag.String("jwt-signing-key-file", "", "Key file used to sign tokens. Tokens may be later validated by thirdy parties by checking the signature with related public key when usign assymetric keys")
+	masterPublicKeyFile0 := flag.String("master-public-key-file", "", "Public key file used to sign special master tokens that can be used to perform special operations on userme.")
 
 	mailSMTPHost0 := flag.String("mail-smtp-host", "", "Mail smtp host")
 	mailSMTPPort0 := flag.Int("mail-smtp-port", 0, "Mail smtp port")
@@ -83,19 +100,24 @@ func main() {
 	}
 
 	opt = options{
-		dbDialect:  *dbDialect0,
-		dbHost:     *dbHost0,
-		dbPort:     *dbPort0,
-		dbUsername: *dbUsername0,
-		dbPassword: *dbPassword0,
-		dbName:     *dbName0,
+		logLevel:     *logLevel,
+		dbDialect:    *dbDialect0,
+		dbHost:       *dbHost0,
+		dbPort:       *dbPort0,
+		dbUsername:   *dbUsername0,
+		dbPassword:   *dbPassword0,
+		dbName:       *dbName0,
+		dbSqliteFile: *dbSqliteFile0,
 
 		corsAllowedOrigins:                   *corsAllowedOrigins0,
 		accessTokenDefaultExpirationMinutes:  *accessTokenDefaultExpirationMinutes0,
 		refreshTokenDefaultExpirationMinutes: *refreshTokenDefaultExpirationMinutes0,
 		accessTokenDefaultScope:              *accessTokenDefaultScope0,
-		jwtPKFile:                            *jwtPKFile0,
-		maxIncorrectPasswordRetries:          *maxIncorrectPasswordRetries0,
+		jwtSigningMethod:                     *jwtSigningMethod0,
+		jwtSigningKeyFile:                    *jwtSigningKeyFile0,
+		masterPublicKeyFile:                  *masterPublicKeyFile0,
+		passwordRetriesMax:                   *passwordRetriesMax0,
+		passwordRetriesTimeSeconds:           *passwordRetriesTimeSeconds0,
 		accountActivationMethod:              *accountActivationMethod0,
 		passwordValidationRegex:              *passwordValidationRegex0,
 
@@ -135,7 +157,38 @@ func main() {
 
 	}
 
-	err := NewHTTPServer().Start()
+	sm := jwt.GetSigningMethod(opt.jwtSigningMethod)
+	if sm == nil {
+		logrus.Errorf("Unsupported JWT signing method %s", opt.jwtSigningMethod)
+		os.Exit(1)
+	}
+
+	logrus.Infof("Loading JWT signing key")
+	//load key contents
+	jwtSigningPEM, err := ioutil.ReadFile(opt.jwtSigningKeyFile)
+	if err != nil {
+		logrus.Errorf("Couldn't read key file contents. err=%s", err)
+		os.Exit(1)
+	}
+	logrus.Debugf("JWT key read from file '%s'", opt.jwtSigningKeyFile)
+
+	pk, err := jwt.ParseRSAPrivateKeyFromPEM(jwtSigningPEM)
+	if err != nil {
+		logrus.Errorf("Failed to parse PEM private key. err=%s", err)
+		os.Exit(1)
+	}
+	opt.jwtSigningKey = pk
+	logrus.Debugf("JWT key loaded")
+
+	db0, err0 := initDB()
+	if err0 != nil {
+		logrus.Warnf("Couldn't init database. err=%s", err0)
+		os.Exit(1)
+	}
+	db = db0
+	defer db.Close()
+
+	err = NewHTTPServer().Start()
 	if err != nil {
 		logrus.Warnf("Error starting server. err=%s", err)
 		os.Exit(1)
