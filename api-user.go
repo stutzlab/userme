@@ -40,21 +40,21 @@ func createUser() func(*gin.Context) {
 		//VALIDATE INPUTS
 		valid := validateField(m, "email", "^(([^<>()\\[\\]\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\.,;:\\s@\"]+)*)|(\".+\"))@(([^<>()[\\]\\.,;:\\s@\"]+\\.)+[^<>()[\\]\\.,;:\\s@\"]{2,})$")
 		if !valid {
-			c.JSON(450, gin.H{"message": fmt.Sprintf("Invalid email", err)})
+			c.JSON(450, gin.H{"message": "Invalid email"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "455").Inc()
 			return
 		}
 
 		valid = validateField(m, "name", "^.{4,}$")
 		if !valid {
-			c.JSON(450, gin.H{"message": fmt.Sprintf("Invalid name", err)})
+			c.JSON(450, gin.H{"message": "Invalid name"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
 			return
 		}
 
 		valid = validateField(m, "password", opt.passwordValidationRegex)
 		if !valid {
-			c.JSON(460, gin.H{"message": fmt.Sprintf("Invalid password", err)})
+			c.JSON(460, gin.H{"message": "Invalid password"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "460").Inc()
 			return
 		}
@@ -62,9 +62,9 @@ func createUser() func(*gin.Context) {
 		//VERIFY IF EMAIL ALREADY EXISTS
 		var u User
 		if !db.First(&u, "email = ?", email).RecordNotFound() {
-			if u.activationDate != nil {
+			if u.ActivationDate != nil {
 				logrus.Infof("Account creation: email '%s' already registered", email)
-				c.JSON(455, gin.H{"message": fmt.Sprintf("Invalid email", err)})
+				c.JSON(455, gin.H{"message": "Invalid email"})
 				invocationCounter.WithLabelValues(pmethod, ppath, "455").Inc()
 				return
 			}
@@ -72,8 +72,8 @@ func createUser() func(*gin.Context) {
 			logrus.Infof("New account registration with existing email in pending activation state. Replacing it.")
 			err := db.Unscoped().Delete(&u).Error
 			if err != nil {
-				logrus.Warnf("Couldn't delete user email=%s", email)
-				c.JSON(500, gin.H{"message": fmt.Sprintf("Server error", err)})
+				logrus.Warnf("Couldn't delete user email=%s. err=%s", email, err)
+				c.JSON(500, gin.H{"message": "Server error"})
 				invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
 				return
 			}
@@ -84,50 +84,50 @@ func createUser() func(*gin.Context) {
 		phash, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 		if err != nil {
 			logrus.Warnf("Couldn't hash password for email=%s. err=%s", email, err)
-			c.JSON(500, gin.H{"message": fmt.Sprintf("Server error", err)})
+			c.JSON(500, gin.H{"message": "Server error"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
 			return
 		}
 
 		u0 := User{
-			email:          email,
-			active:         1,
-			creationDate:   time.Now(),
-			name:           m["name"],
-			passwordDate:   time.Now(),
-			passwordHash:   string(phash),
-			activationDate: nil,
+			Email:          email,
+			Active:         1,
+			CreationDate:   time.Now(),
+			Name:           m["name"],
+			PasswordDate:   time.Now(),
+			PasswordHash:   string(phash),
+			ActivationDate: nil,
 		}
 		if opt.accountActivationMethod == "direct" {
 			now := time.Now()
-			u0.activationDate = &now
+			u0.ActivationDate = &now
 		}
 		err = db.Create(&u0).Error
 		if err != nil {
 			logrus.Warnf("Error creating user email=%s. err=%s", email, err)
-			c.JSON(500, gin.H{"message": fmt.Sprintf("Server error", err)})
+			c.JSON(500, gin.H{"message": "Server error"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
 			return
 		}
 
 		if opt.accountActivationMethod == "direct" {
-			c.JSON(201, gin.H{"message": fmt.Sprintf("Account created and activated", err)})
+			c.JSON(201, gin.H{"message": "Account created and activated"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "201").Inc()
 			return
 		}
 
 		//SEND ACTIVATION TOKEN TO USER EMAIL
-		activationToken, err := createJWTToken(email, 5, "activate-user")
+		activationToken, err := createJWTToken(email, 5, "activation", "activate-user")
 		if err != nil {
 			logrus.Warnf("Error creating activation token for email=%s. err=%s", email, err)
-			c.JSON(500, gin.H{"message": fmt.Sprintf("Server error", err)})
+			c.JSON(500, gin.H{"message": "Server error"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
 			return
 		}
 
 		logrus.Debugf("Sending activation mail to %s", email)
-		htmlBody := strings.ReplaceAll(opt.mailActivationHTMLBody, "DISPLAY_NAME", u0.name)
-		htmlBody = strings.ReplaceAll(htmlBody, "DISPLAY_NAME", u0.name)
+		htmlBody := strings.ReplaceAll(opt.mailActivationHTMLBody, "DISPLAY_NAME", u0.Name)
+		htmlBody = strings.ReplaceAll(htmlBody, "DISPLAY_NAME", u0.Name)
 		err = sendMail(opt.mailActivationSubject, "ACTIVATION_TOKEN", activationToken)
 		if err != nil {
 			logrus.Warnf("Couldn't send email to %s (%s). err=%s", email, opt.mailActivationSubject, err)

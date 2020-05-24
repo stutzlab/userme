@@ -14,15 +14,15 @@ import (
 
 //User as in database
 type User struct {
-	name               string    `gorm:"size:60; not null"`
-	email              string    `gorm:"primary_key"`
-	passwordHash       string    `gorm:"size:100; not null"`
-	passwordDate       time.Time `gorm:"not null"`
-	activationDate     *time.Time
-	wrongPasswordCount uint8 `gorm:"not null; default:0"`
-	wrongPasswordDate  *time.Time
-	creationDate       time.Time `gorm:"not null; default:CURRENT_TIMESTAMP"`
-	active             uint8     `gorm:"not null; default:1"`
+	Name               string    `gorm:"size:60; not null"`
+	Email              string    `gorm:"primary_key"`
+	PasswordHash       string    `gorm:"size:100; not null"`
+	PasswordDate       time.Time `gorm:"not null"`
+	ActivationDate     *time.Time
+	WrongPasswordCount uint8 `gorm:"not null; default:0"`
+	WrongPasswordDate  *time.Time
+	CreationDate       time.Time `gorm:"not null; default:CURRENT_TIMESTAMP"`
+	Active             uint8     `gorm:"not null; default:1"`
 }
 
 func initDB() (*gorm.DB, error) {
@@ -51,8 +51,10 @@ func initDB() (*gorm.DB, error) {
 		db0.LogMode(true)
 	}
 
-	logrus.Infof("Checking database schema")
-	db.AutoMigrate(&User{})
+	db0.Set("gorm:table_options", "charset=utf8")
 
-	return db, nil
+	logrus.Infof("Checking database schema")
+	db0.AutoMigrate(&User{})
+
+	return db0, nil
 }

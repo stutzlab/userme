@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/rsa"
 	"flag"
 	"io/ioutil"
 	"os"
@@ -27,7 +26,7 @@ type options struct {
 	accessTokenDefaultScope              string
 	jwtSigningMethod                     string
 	jwtSigningKeyFile                    string
-	jwtSigningKey                        *rsa.PrivateKey
+	jwtSigningKey                        interface{}
 	masterPublicKeyFile                  string
 	passwordRetriesMax                   int
 	passwordRetriesTimeSeconds           int
@@ -53,21 +52,21 @@ var (
 func main() {
 	logLevel := flag.String("loglevel", "debug", "debug, info, warning, error")
 
-	dbDialect0 := flag.String("db-dialect", "mysql", "Database dialect to use. One of mysql, postgres, sqlite or mssql. Defaults to 'mysql'")
+	dbDialect0 := flag.String("db-dialect", "mysql", "Database dialect to use. One of mysql, postgres, sqlite or mssql")
 	dbHost0 := flag.String("db-host", "", "Database host address")
 	dbPort0 := flag.Int("db-port", 0, "Database port")
-	dbUsername0 := flag.String("db-username", "userme", "Database username. defaults to 'userme'")
+	dbUsername0 := flag.String("db-username", "userme", "Database username")
 	dbPassword0 := flag.String("db-password", "", "Database password")
-	dbName0 := flag.String("db-name", "userme", "Database name. defaults to 'userme'")
+	dbName0 := flag.String("db-name", "userme", "Database name")
 	dbSqliteFile0 := flag.String("db-sqlite-file", "/data/userme.db", "SQLite file path location")
 
-	corsAllowedOrigins0 := flag.String("cors-allowed-origins", "*", "Cors allowed origins for this server. defaults to '*' (not recommended for production)")
-	accessTokenDefaultExpirationMinutes0 := flag.Int("acesstoken-expiration-minutes", 480, "Default access token expiration age")
+	corsAllowedOrigins0 := flag.String("cors-allowed-origins", "*", "Cors allowed origins for this server")
+	accessTokenDefaultExpirationMinutes0 := flag.Int("accesstoken-expiration-minutes", 480, "Default access token expiration age")
 	refreshTokenDefaultExpirationMinutes0 := flag.Int("refreshtoken-expiration-minutes", 40320, "Default refresh token expiration age")
 	accessTokenDefaultScope0 := flag.String("accesstoken-default-scope", "basic", "Default claim (scope) added to all access tokens")
 	passwordRetriesMax0 := flag.Int("password-retries-max", 5, "Max number of incorrect password retries")
 	passwordRetriesTimeSeconds0 := flag.Int("password-retries-time", 5, "Max number of incorrect password retries")
-	accountActivationMethod0 := flag.String("account-activation-method", "direct", "Activation method for new accounts. One of 'direct' (no additional steps needed) or 'mail' (send e-mail with activation link to user). Defaults to 'direct'")
+	accountActivationMethod0 := flag.String("account-activation-method", "direct", "Activation method for new accounts. One of 'direct' (no additional steps needed) or 'mail' (send e-mail with activation link to user)")
 	passwordValidationRegex0 := flag.String("password-validation-regex", "^.{6,30}$", "Password validation regex. Defaults to '^.{6,30}$'")
 	jwtSigningMethod0 := flag.String("jwt-signing-method", "", "JWT signing method. defaults to 'EC256'")
 	jwtSigningKeyFile0 := flag.String("jwt-signing-key-file", "", "Key file used to sign tokens. Tokens may be later validated by thirdy parties by checking the signature with related public key when usign assymetric keys")
@@ -132,7 +131,7 @@ func main() {
 		mailActivationHTMLBody:    *mailActivationHTML0,
 	}
 
-	if opt.dbDialect != "sqlite" {
+	if opt.dbDialect != "sqlite3" {
 		if opt.dbHost == "" || opt.dbPort == 0 || opt.dbName == "" || opt.dbUsername == "" || opt.dbPassword == "" {
 			logrus.Errorf("--db-host, --db-port, --db-name, --db-username and --db-password are all required non empty")
 			os.Exit(1)
@@ -171,8 +170,9 @@ func main() {
 		os.Exit(1)
 	}
 	logrus.Debugf("JWT key read from file '%s'", opt.jwtSigningKeyFile)
+	// logrus.Debugf(string(jwtSigningPEM))
 
-	pk, err := jwt.ParseRSAPrivateKeyFromPEM(jwtSigningPEM)
+	pk, err := parsePKIXPublicKeyFromPEM(jwtSigningPEM)
 	if err != nil {
 		logrus.Errorf("Failed to parse PEM private key. err=%s", err)
 		os.Exit(1)

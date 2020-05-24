@@ -80,8 +80,8 @@ Userme gives you a bunch of API services for basic account creation, token valid
 * PASSWORD_VALIDATION_REGEX - Regex used against new user passwords. defaults to '^.{6,30}$'
 
 * JWT_SIGNING_METHOD - JWT algorithm used to sign tokens. defaults to 'ES256'
-* JWT_SIGNING_KEY_FILE - PEM file path containing the key used on JWT token signatures. In Docker, user "secrets" to store this kind of information. defaults to '/secrets/jwt-signing-key'
-* MATER_PUBLIC_KEY_FILE - File path containing the Public Key used to sign special "master" tokens that can be used to perform some administrative operations on Userme. In Docker, user "secrets" to store this kind of information. defaults to '/secrets/jwt-private-key'
+* JWT_SIGNING_KEY_FILE - PEM file path containing the key used on JWT token signatures. In Docker, user "secrets" to store this kind of information. defaults to '/run/secrets/jwt-signing-key'
+* MATER_PUBLIC_KEY_FILE - File path containing the Public Key used to sign special "master" tokens that can be used to perform some administrative operations on Userme. In Docker, user "secrets" to store this kind of information. defaults to '/run/secrets/jwt-private-key'
 
 * DB_DIALECT - One of 'mysql', 'postgres', 'sqlite3' or 'mssql'. defaults to 'mysql'
 * DB_HOST - database hostname. required
@@ -106,9 +106,15 @@ Userme gives you a bunch of API services for basic account creation, token valid
 
 ## Development Tips
 
+### JWT Keys
+
+* Test keys are not stored in repository
+* Generate your own PEM keys using https://jwt.io/ (see PEM keys at right boxes in blue) and place in file "test-jwt-private-key.pem"
+
 ### TBD
 
 * Convert Post invocations to Swagger yaml using https://www.apimatic.io/, then convert Swagger yaml to Markdown using 
 ```markdown-swagger swagger.yaml README.md``` 
 * Install this using "npm install markdown-swagger -g"
 * After updating the API you can re-run this over this README because it will replace only contents inside its tags.
+
