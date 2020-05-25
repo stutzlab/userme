@@ -7,7 +7,7 @@ Userme gives you a bunch of API services for basic account creation, token valid
 ## Basics
 
 * A user is created with a email/password
-* And JWT access token is returned against a email/password validation so that your application can check that he/she was authenticated
+* A JWT access token is returned against a email/password validation so that your application can check that he/she was authenticated
 * You have two tokens:
   * Access token - the token used for your http requests to check if the user is OK. Will be invalidated in a matter of minutes or hours
   * Refresh token - a token that can be used by the client application to recreate an Access Token even after it has expired. Useful to avoid the user to have to retype his/hers password, for example, in a mobile application so that the user won't have to login each time the application is opened.
@@ -36,12 +36,21 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 500 - server error
   * response body json: name, jwtAccessToken, jwtRefreshToken, accessTokenExpirationDate, refreshTokenExpirationDate
 
-* POST /user/:email/reset-password
+* POST /user/:email/request-reset-password
   * response status
     * 202 - password reset request accepted (maybe email doesn't exist and email won't be sent, but we don't want to give this clue to abusers ;), so this kind of details can be accessed only on server logs)
     * 500 - server error
 
-* POST /user/:mail/change-password
+* POST /user/:email/reset-password
+  * resquest header: Bearer <reset-password-token>
+  * request body json: newPassword
+  * response status
+    * 200 - password changed successfuly
+    * 450 - invalid token
+    * 460 - invalid new password
+    * 500 - server error
+
+* POST /user/:email/change-password
   * resquest header: Bearer <access token>
   * request body json: currentPassword, newPassword
   * response status:
@@ -65,7 +74,6 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 450 - token invalid
     * 500 - server error
   * response body json: name, email, expirationDate, claims[]
-
 
 ## ENVs
 
@@ -96,9 +104,9 @@ Userme gives you a bunch of API services for basic account creation, token valid
 * MAIL_SMTP_PASS - smtp authentication password. required
 * MAIL_FROM_ADDRESS - Send emails using this "mail from" info. required
 * MAIL_ACTIVATION_SUBJECT - Mail Subject used on account activation messages. required. Example: ```Activate your account at Berimbau.com!```
-* MAIL_ACTIVATION_HTML - Mail HTML Body used on account activation messages. Use DISPLAY_NAME and ACTIVATION_TOKEN for string templating. required. Example: ```<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>```
+* MAIL_ACTIVATION_HTML - Mail HTML Body used on account activation messages. Use $DISPLAY_NAME and $ACTIVATION_TOKEN for string templating. required. Example: ```<b>Hi $DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=$ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>```
 * MAIL_PASSWORD_RESET_SUBJECT - Mail Subject used on password reset messages. required. Example: ```Password reset requested at Test.com```
-* MAIL_PASSWORD_RESET_HTML - Mail HTML Body used on password reset messages. Use DISPLAY_NAME and ACTIVATION_TOKEN for string templating. required. Example: ```<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=ACTIVATION_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>```
+* MAIL_PASSWORD_RESET_HTML - Mail HTML Body used on password reset messages. Use $DISPLAY_NAME and $ACTIVATION_TOKEN for string templating. required. Example: ```<b>Hi $DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=$ACTIVATION_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>```
 
 ## Volume
 

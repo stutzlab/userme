@@ -2,13 +2,16 @@ package main
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/smtp"
+	"strconv"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -31,24 +34,62 @@ func createJWTToken(email string, expirationMinutes int, typ string, scopes stri
 	token := jwt.NewWithClaims(sm, jwt.MapClaims{
 		"iss":   "userme",
 		"sub":   email,
-		"exp":   time.Now().Unix() + int64(60*expirationMinutes),
-		"iat":   time.Now().Unix(),
-		"nbf":   time.Now().Unix(),
-		"jti":   jti,
+		"exp":   json.Number(strconv.FormatInt(time.Now().Unix()+int64(60*expirationMinutes), 10)),
+		"iat":   json.Number(strconv.FormatInt(time.Now().Unix(), 10)),
+		"nbf":   json.Number(strconv.FormatInt(time.Now().Unix(), 10)),
+		"jti":   jti.String(),
 		"scope": scopes,
 		"typ":   typ,
 	})
 	return token.SignedString(opt.jwtSigningKey)
 }
 
-func parsePKIXPublicKeyFromPEM(pubPEM []byte) (interface{}, error) {
-	block, _ := pem.Decode(pubPEM)
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block containing the key")
-	}
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+func parseKeyFromPEM(pemFile string, private bool) (interface{}, error) {
+	pemFileContents, err := ioutil.ReadFile(pemFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Couldn't read pem file contents. err=%s", err)
 	}
-	return pub, nil
+
+	nextBytes := pemFileContents
+	for len(nextBytes) > 0 {
+		block, rbytes := pem.Decode(nextBytes)
+		if block == nil {
+			return nil, errors.New("Failed to parse PEM block")
+		}
+
+		var err error
+		var key interface{}
+
+		if private {
+			if block.Type == "PRIVATE KEY" {
+				key, err = x509.ParsePKCS8PrivateKey(block.Bytes)
+
+			} else if block.Type == "EC PRIVATE KEY" {
+				key, err = x509.ParseECPrivateKey(block.Bytes)
+
+			} else if block.Type == "RSA PRIVATE KEY" {
+				key, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+			}
+
+		} else {
+			if block.Type == "PUBLIC KEY" {
+				key, err = x509.ParsePKIXPublicKey(block.Bytes)
+			}
+			if block.Type == "RSA PUBLIC KEY" {
+				key, err = x509.ParsePKCS1PublicKey(block.Bytes)
+			}
+		}
+
+		if err != nil {
+			return nil, err
+		}
+		if key != nil {
+			return key, nil
+		}
+		nextBytes = rbytes
+	}
+	if private {
+		return nil, fmt.Errorf("Couldn't find key 'PRIVATE KEY' block in PEM file")
+	}
+	return nil, fmt.Errorf("Couldn't find key 'PUBLIC KEY' block in PEM file")
 }

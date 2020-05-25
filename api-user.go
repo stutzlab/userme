@@ -126,16 +126,18 @@ func createUser() func(*gin.Context) {
 		}
 
 		logrus.Debugf("Sending activation mail to %s", email)
-		htmlBody := strings.ReplaceAll(opt.mailActivationHTMLBody, "DISPLAY_NAME", u0.Name)
-		htmlBody = strings.ReplaceAll(htmlBody, "DISPLAY_NAME", u0.Name)
-		err = sendMail(opt.mailActivationSubject, "ACTIVATION_TOKEN", activationToken)
+		htmlBody := strings.ReplaceAll(opt.mailActivationHTMLBody, "$DISPLAY_NAME", u0.Name)
+		htmlBody = strings.ReplaceAll(htmlBody, "$ACTIVATION_TOKEN", activationToken)
+		err = sendMail(opt.mailActivationSubject, htmlBody, email)
 		if err != nil {
 			logrus.Warnf("Couldn't send email to %s (%s). err=%s", email, opt.mailActivationSubject, err)
 			mailCounter.WithLabelValues("500").Inc()
+			c.JSON(500, gin.H{"message": "Server error"})
 			return
 		}
 
 		logrus.Debugf("Account created and activation link sent to email %s", email)
+		logrus.Debugf("Activation token=%s", activationToken)
 		c.JSON(250, gin.H{"message": "Account created and activation link sent to email"})
 		invocationCounter.WithLabelValues(pmethod, ppath, "250").Inc()
 		return

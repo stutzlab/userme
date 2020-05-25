@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"os"
+	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
@@ -162,22 +162,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	logrus.Infof("Loading JWT signing key")
-	//load key contents
-	jwtSigningPEM, err := ioutil.ReadFile(opt.jwtSigningKeyFile)
-	if err != nil {
-		logrus.Errorf("Couldn't read key file contents. err=%s", err)
-		os.Exit(1)
-	}
-	logrus.Debugf("JWT key read from file '%s'", opt.jwtSigningKeyFile)
-	// logrus.Debugf(string(jwtSigningPEM))
+	logrus.Infof("Loading JWT private signing key")
 
-	pk, err := parsePKIXPublicKeyFromPEM(jwtSigningPEM)
-	if err != nil {
-		logrus.Errorf("Failed to parse PEM private key. err=%s", err)
+	logrus.Debugf("JWT signing method: %s", opt.jwtSigningMethod)
+	if strings.HasPrefix(opt.jwtSigningMethod, "RS") || strings.HasPrefix(opt.jwtSigningMethod, "ES") || strings.HasPrefix(opt.jwtSigningMethod, "HS") {
+		pk, err := parseKeyFromPEM(opt.jwtSigningKeyFile, true)
+		if err != nil {
+			logrus.Errorf("Failed to parse PEM private key. err=%s", err)
+			os.Exit(1)
+		}
+		opt.jwtSigningKey = pk
+	} else {
+		logrus.Errorf("Unsupported signing method %s", opt.jwtSigningMethod)
 		os.Exit(1)
 	}
-	opt.jwtSigningKey = pk
 	logrus.Debugf("JWT key loaded")
 
 	db0, err0 := initDB()
@@ -188,7 +186,7 @@ func main() {
 	db = db0
 	defer db.Close()
 
-	err = NewHTTPServer().Start()
+	err := NewHTTPServer().Start()
 	if err != nil {
 		logrus.Warnf("Error starting server. err=%s", err)
 		os.Exit(1)
