@@ -21,8 +21,9 @@ type User struct {
 	ActivationDate     *time.Time
 	WrongPasswordCount uint8 `gorm:"not null; default:0"`
 	WrongPasswordDate  *time.Time
+	PasswordValidUntil *time.Time
 	CreationDate       time.Time `gorm:"not null; default:CURRENT_TIMESTAMP"`
-	Active             uint8     `gorm:"not null; default:1"`
+	Enabled            uint8     `gorm:"not null; default:1"`
 }
 
 func initDB() (*gorm.DB, error) {

@@ -22,8 +22,9 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 201 - user created and activated
     * 250 - user created and activation link sent to email
     * 450 - invalid name
-    * 455 - invalid email (used for bad email names and already registered emails too)
+    * 455 - invalid email
     * 460 - invalid password
+    * 465 - email already registered
     * 500 - server error
 
 * POST /user/:email/activate
@@ -32,7 +33,7 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 202 - account activated successfuly
     * 450 - invalid activation token
     * 455 - account already activated
-    * 460 - account locked
+    * 460 - account disabled
     * 500 - server error
   * response body json: name, jwtAccessToken, jwtRefreshToken, accessTokenExpirationDate, refreshTokenExpirationDate
 
@@ -51,7 +52,6 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 500 - server error
 
 * POST /user/:email/change-password
-  * resquest header: Bearer <access token>
   * request body json: currentPassword, newPassword
   * response status:
     * 200 - password changed successfuly
@@ -64,14 +64,28 @@ Userme gives you a bunch of API services for basic account creation, token valid
   * response status
     * 200 - token created
     * 450 - invalid/inexistent email/password combination
+    * 455 - password expired
+    * 460 - account disabled
+    * 500 - server error
+  * response body json: name, jwtAccessToken, jwtRefreshToken, accessTokenExpirationDate, refreshTokenExpirationDate
+
+* POST /token/refresh
+  * request header Authorization: Bearer <refresh token>
+  * response status
+    * 200 - token created
+    * 450 - invalid refresh token
+    * 455 - password expired
+    * 460 - account disabled
     * 500 - server error
   * response body json: name, jwtAccessToken, jwtRefreshToken, accessTokenExpirationDate, refreshTokenExpirationDate
 
 * GET /token
+  * Validates access tokens and verify if the user is enabled in database
   * request header: Bearer <access token>
   * response status
-    * 200 - token valid
+    * 200 - token/user valid
     * 450 - token invalid
+    * 455 - account disabled
     * 500 - server error
   * response body json: name, email, expirationDate, claims[]
 
@@ -81,12 +95,15 @@ Userme gives you a bunch of API services for basic account creation, token valid
 * CORS_ALLOWED_ORIGINS - Browser origin domains allowed to invoke this service. defaults to '*'
 * ACCESS_TOKEN_EXPIRATION_MINUTES - Access Token expiration time after creation. This is the token used in requests to the server. If you want to extend this time, use a Refresh Token to get a new Access Token at endpoint /token/refresh. defaults to '480'
 * REFRESH_TOKEN_EXPIRATION_MINUTES - Refresh token expiration time. This token can be used to get new Access Tokens, but we will verify if this account is enabled/unlock before doing so. Probably much higher than access tokens expiration because this token can be used to extend long time authentications, for example, for supporting mobile applications to keep authenticated after being closed etc. defaults to '40320'
+* VALIDATION_TOKEN_EXPIRATION_MINUTES - Validation token expiration in minutes. This is the time the link sent to email will remain valid. defaults to '20'
 * ACCESS_TOKEN_DEFAULT_SCOPE - Scope (claim) included in all tokens indicating a good authentication. defaults to 'basic'
-* INCORRECT_PASSWORD_MAX_RETRIES - Max number of wrong password retries during user authentication before the account get locked (then it will need a "password reset"). defaults to '5'
+* INCORRECT_PASSWORD_MAX_RETRIES - Max number of wrong password retries during user authentication before the account gets locked (then it will need a "password reset"). defaults to '5'
 * INCORRENT_PASSWORD_TIME_SECONDS - Time to permit a new password retry base. This base is doubled each time the user misses the password. For example: With value of '1', the user can do the first retry after 1 second, the second retry after 2 seconds, third retry after 4 seconds, forth retry after 8 seconds until reaching MAX_RETRIES. defaults to '1'
 * ACCOUNT_ACTIVATION_METHOD - Whetever activate account immediately after user creation ('direct') or send an "activation link" to the user e-mail ('email'). defaults to 'direct'
 * PASSWORD_VALIDATION_REGEX - Regex used against new user passwords. defaults to '^.{6,30}$'
+* PASSWORD_EXPIRATION_DAYS - Password expiration days after changing it (will force the user to change the password upon login). -1 means no expiration. defaults to -1
 
+* JWT_ISSUER - JWT 'iss' field contents. Used as the 'name' of mail from too.
 * JWT_SIGNING_METHOD - JWT algorithm used to sign tokens. defaults to 'ES256'
 * JWT_SIGNING_KEY_FILE - PEM file path containing the key used on JWT token signatures. In Docker, user "secrets" to store this kind of information. defaults to '/run/secrets/jwt-signing-key'
 * MATER_PUBLIC_KEY_FILE - File path containing the Public Key used to sign special "master" tokens that can be used to perform some administrative operations on Userme. In Docker, user "secrets" to store this kind of information. defaults to '/run/secrets/jwt-private-key'

@@ -15,7 +15,7 @@ import (
 
 func (h *HTTPServer) setupUserHandlers() {
 	h.router.PUT("/user/:email", createUser())
-	// h.router.POST("/user/:email/activate", activateUser())
+	h.router.POST("/user/:email/activate", activateUser())
 	// h.router.POST("/user/:email/disable", disableUser())
 }
 
@@ -32,7 +32,7 @@ func createUser() func(*gin.Context) {
 		err := json.Unmarshal(data, &m)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Couldn't parse body contents. err=%s", err)})
-			invocationCounter.WithLabelValues("PUT", "/user/:email", "500").Inc()
+			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
 			return
 		}
 		m["email"] = email
@@ -63,9 +63,8 @@ func createUser() func(*gin.Context) {
 		var u User
 		if !db.First(&u, "email = ?", email).RecordNotFound() {
 			if u.ActivationDate != nil {
-				logrus.Infof("Account creation: email '%s' already registered", email)
-				c.JSON(455, gin.H{"message": "Invalid email"})
-				invocationCounter.WithLabelValues(pmethod, ppath, "455").Inc()
+				c.JSON(465, gin.H{"message": "Email already registered"})
+				invocationCounter.WithLabelValues(pmethod, ppath, "465").Inc()
 				return
 			}
 
@@ -89,14 +88,21 @@ func createUser() func(*gin.Context) {
 			return
 		}
 
+		var passwordValidUntil *time.Time
+		if opt.passwordExpirationDays > 0 {
+			tp := time.Unix(time.Now().Unix()+int64(60*60*24*opt.passwordExpirationDays), 0)
+			passwordValidUntil = &tp
+		}
+
 		u0 := User{
-			Email:          email,
-			Active:         1,
-			CreationDate:   time.Now(),
-			Name:           m["name"],
-			PasswordDate:   time.Now(),
-			PasswordHash:   string(phash),
-			ActivationDate: nil,
+			Email:              email,
+			Enabled:            1,
+			CreationDate:       time.Now(),
+			Name:               m["name"],
+			PasswordDate:       time.Now(),
+			PasswordHash:       string(phash),
+			ActivationDate:     nil,
+			PasswordValidUntil: passwordValidUntil,
 		}
 		if opt.accountActivationMethod == "direct" {
 			now := time.Now()
@@ -117,7 +123,7 @@ func createUser() func(*gin.Context) {
 		}
 
 		//SEND ACTIVATION TOKEN TO USER EMAIL
-		activationToken, err := createJWTToken(email, 5, "activation", "activate-user")
+		_, activationTokenString, err := createJWTToken(email, opt.validationTokenExpirationMinutes, "activation", "")
 		if err != nil {
 			logrus.Warnf("Error creating activation token for email=%s. err=%s", email, err)
 			c.JSON(500, gin.H{"message": "Server error"})
@@ -127,8 +133,8 @@ func createUser() func(*gin.Context) {
 
 		logrus.Debugf("Sending activation mail to %s", email)
 		htmlBody := strings.ReplaceAll(opt.mailActivationHTMLBody, "$DISPLAY_NAME", u0.Name)
-		htmlBody = strings.ReplaceAll(htmlBody, "$ACTIVATION_TOKEN", activationToken)
-		err = sendMail(opt.mailActivationSubject, htmlBody, email)
+		htmlBody = strings.ReplaceAll(htmlBody, "$ACTIVATION_TOKEN", activationTokenString)
+		err = sendMail(opt.mailActivationSubject, htmlBody, email, u0.Name)
 		if err != nil {
 			logrus.Warnf("Couldn't send email to %s (%s). err=%s", email, opt.mailActivationSubject, err)
 			mailCounter.WithLabelValues("500").Inc()
@@ -137,9 +143,76 @@ func createUser() func(*gin.Context) {
 		}
 
 		logrus.Debugf("Account created and activation link sent to email %s", email)
-		logrus.Debugf("Activation token=%s", activationToken)
+		logrus.Debugf("Activation token=%s", activationTokenString)
 		c.JSON(250, gin.H{"message": "Account created and activation link sent to email"})
 		invocationCounter.WithLabelValues(pmethod, ppath, "250").Inc()
 		return
+	}
+}
+
+func activateUser() func(*gin.Context) {
+	// * response body json: name, jwtAccessToken, jwtRefreshToken, accessTokenExpirationDate, refreshTokenExpirationDate
+	return func(c *gin.Context) {
+		pmethod := "POST"
+		ppath := "/user/:email/activate"
+
+		email := strings.ToLower(c.Param("email"))
+		logrus.Debugf("activateUser email=%s", email)
+
+		_, err := loadAndValidateToken(c.Request, "activation", email)
+		if err != nil {
+			c.JSON(450, gin.H{"message": "Invalid activation token"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+			return
+		}
+
+		var u User
+		db1 := db.First(&u, "email = ?", email)
+		if db1.RecordNotFound() {
+			c.JSON(404, gin.H{"message": "Account not found"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "404").Inc()
+			return
+		}
+		err = db1.Error
+		if err != nil {
+			logrus.Warnf("Error getting user during activation. email=%s err=%s", email, err)
+			c.JSON(500, gin.H{"message": "Server error"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+			return
+		}
+
+		if u.Enabled == 0 {
+			c.JSON(460, gin.H{"message": "Account disabled"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "460").Inc()
+			return
+		}
+
+		if u.ActivationDate != nil {
+			c.JSON(455, gin.H{"message": "Account already activated"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "455").Inc()
+			return
+		}
+
+		err = db.Model(&u).UpdateColumn("activationDate", time.Now()).Error
+		if err != nil {
+			logrus.Warnf("Error activating user. email=%s err=%s", email, err)
+			c.JSON(500, gin.H{"message": "Server error"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+			return
+		}
+
+		//ACCOUNT ACTIVATED. CREATE ACCESS TOKENS FOR DIRECT SIGNIN
+		tokensResponse, err := createAccessAndRefreshToken(u.Name, email, opt.accessTokenDefaultScope)
+		if err != nil {
+			logrus.Warnf("Error generating tokens for user %s. err=%s", email, err)
+			c.JSON(500, gin.H{"message": "Server error"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+			return
+		}
+
+		tokensResponse["message"] = "Account activated successfuly"
+		c.JSON(202, tokensResponse)
+		invocationCounter.WithLabelValues(pmethod, ppath, "202").Inc()
+		logrus.Debugf("Account %s activated successfuly", email)
 	}
 }

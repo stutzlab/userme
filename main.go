@@ -23,13 +23,17 @@ type options struct {
 	corsAllowedOrigins                   string
 	accessTokenDefaultExpirationMinutes  int
 	refreshTokenDefaultExpirationMinutes int
+	validationTokenExpirationMinutes     int
 	accessTokenDefaultScope              string
+	jwtIssuer                            string
 	jwtSigningMethod                     string
 	jwtSigningKeyFile                    string
-	jwtSigningKey                        interface{}
+	jwtPublicKey                         interface{}
+	jwtPrivateKey                        interface{}
 	masterPublicKeyFile                  string
 	passwordRetriesMax                   int
 	passwordRetriesTimeSeconds           int
+	passwordExpirationDays               int
 	accountActivationMethod              string
 	passwordValidationRegex              string
 
@@ -38,6 +42,7 @@ type options struct {
 	mailSMTPUser              string
 	mailSMTPPass              string
 	mailFromAddress           string
+	mailFromName              string
 	mailActivationSubject     string
 	mailActivationHTMLBody    string
 	mailResetPasswordSubject  string
@@ -63,12 +68,15 @@ func main() {
 	corsAllowedOrigins0 := flag.String("cors-allowed-origins", "*", "Cors allowed origins for this server")
 	accessTokenDefaultExpirationMinutes0 := flag.Int("accesstoken-expiration-minutes", 480, "Default access token expiration age")
 	refreshTokenDefaultExpirationMinutes0 := flag.Int("refreshtoken-expiration-minutes", 40320, "Default refresh token expiration age")
+	validationTokenExpirationMinutes0 := flag.Int("validationtoken-expiration-minutes", 20, "Validation token expiration age (for email confirmations)")
 	accessTokenDefaultScope0 := flag.String("accesstoken-default-scope", "basic", "Default claim (scope) added to all access tokens")
 	passwordRetriesMax0 := flag.Int("password-retries-max", 5, "Max number of incorrect password retries")
 	passwordRetriesTimeSeconds0 := flag.Int("password-retries-time", 5, "Max number of incorrect password retries")
+	passwordExpirationDays0 := flag.Int("password-expiration-days", -1, "Password expiration time. This will force a password change. -1 means no expiration")
 	accountActivationMethod0 := flag.String("account-activation-method", "direct", "Activation method for new accounts. One of 'direct' (no additional steps needed) or 'mail' (send e-mail with activation link to user)")
 	passwordValidationRegex0 := flag.String("password-validation-regex", "^.{6,30}$", "Password validation regex. Defaults to '^.{6,30}$'")
-	jwtSigningMethod0 := flag.String("jwt-signing-method", "", "JWT signing method. defaults to 'EC256'")
+	mailFromName0 := flag.String("mail-from-name", "", "Mail from name on mail notifications. Used as JWT Issuer field too. required")
+	jwtSigningMethod0 := flag.String("jwt-signing-method", "", "JWT signing method. required")
 	jwtSigningKeyFile0 := flag.String("jwt-signing-key-file", "", "Key file used to sign tokens. Tokens may be later validated by thirdy parties by checking the signature with related public key when usign assymetric keys")
 	masterPublicKeyFile0 := flag.String("master-public-key-file", "", "Public key file used to sign special master tokens that can be used to perform special operations on userme.")
 
@@ -111,7 +119,9 @@ func main() {
 		corsAllowedOrigins:                   *corsAllowedOrigins0,
 		accessTokenDefaultExpirationMinutes:  *accessTokenDefaultExpirationMinutes0,
 		refreshTokenDefaultExpirationMinutes: *refreshTokenDefaultExpirationMinutes0,
+		validationTokenExpirationMinutes:     *validationTokenExpirationMinutes0,
 		accessTokenDefaultScope:              *accessTokenDefaultScope0,
+		mailFromName:                         *mailFromName0,
 		jwtSigningMethod:                     *jwtSigningMethod0,
 		jwtSigningKeyFile:                    *jwtSigningKeyFile0,
 		masterPublicKeyFile:                  *masterPublicKeyFile0,
@@ -119,6 +129,7 @@ func main() {
 		passwordRetriesTimeSeconds:           *passwordRetriesTimeSeconds0,
 		accountActivationMethod:              *accountActivationMethod0,
 		passwordValidationRegex:              *passwordValidationRegex0,
+		passwordExpirationDays:               *passwordExpirationDays0,
 
 		mailSMTPHost:              *mailSMTPHost0,
 		mailSMTPPort:              *mailSMTPPort0,
@@ -143,8 +154,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if opt.mailFromAddress == "" || opt.mailResetPasswordSubject == "" || opt.mailResetPasswordHTMLBody == "" {
-		logrus.Errorf("--mail-from-address, --mail-password-reset-subject and --mail-password-reset-html are required")
+	if opt.mailFromName == "" || opt.mailFromAddress == "" || opt.mailResetPasswordSubject == "" || opt.mailResetPasswordHTMLBody == "" {
+		logrus.Errorf("--mail-from-name --mail-from-address, --mail-password-reset-subject and --mail-password-reset-html are required")
 		os.Exit(1)
 	}
 
@@ -166,17 +177,26 @@ func main() {
 
 	logrus.Debugf("JWT signing method: %s", opt.jwtSigningMethod)
 	if strings.HasPrefix(opt.jwtSigningMethod, "RS") || strings.HasPrefix(opt.jwtSigningMethod, "ES") || strings.HasPrefix(opt.jwtSigningMethod, "HS") {
-		pk, err := parseKeyFromPEM(opt.jwtSigningKeyFile, true)
+		privk, err := parseKeyFromPEM(opt.jwtSigningKeyFile, true)
 		if err != nil {
 			logrus.Errorf("Failed to parse PEM private key. err=%s", err)
 			os.Exit(1)
 		}
-		opt.jwtSigningKey = pk
+		opt.jwtPrivateKey = privk
+
+		pubk, err := parseKeyFromPEM(opt.jwtSigningKeyFile, false)
+		if err != nil {
+			logrus.Errorf("Failed to parse PEM public key. err=%s", err)
+			os.Exit(1)
+		}
+		opt.jwtPublicKey = pubk
 	} else {
 		logrus.Errorf("Unsupported signing method %s", opt.jwtSigningMethod)
 		os.Exit(1)
 	}
 	logrus.Debugf("JWT key loaded")
+
+	opt.jwtIssuer = opt.mailFromName
 
 	db0, err0 := initDB()
 	if err0 != nil {

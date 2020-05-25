@@ -16,8 +16,10 @@ userme \
      --accesstoken-expiration-minutes=$ACCESS_TOKEN_EXPIRATION_MINUTES \
      --accesstoken-default-scope=$ACCESS_TOKEN_DEFAULT_SCOPE \
      --refreshtoken-expiration-minutes=$REFRESH_TOKEN_EXPIRATION_MINUTES \
+     --validationtoken-expiration-minutes=$VALIDATION_TOKEN_EXPIRATION_MINUTES \
      --password-retries-max=$INCORRECT_PASSWORD_MAX_RETRIES \
      --password-retries-time=$INCORRENT_PASSWORD_TIME_SECONDS \
+     --password-expiration-days=$PASSWORD_EXPIRATION_DAYS \
      --account-activation-method=$ACCOUNT_ACTIVATION_METHOD \
      --password-validation-regex=$PASSWORD_VALIDATION_REGEX \
      --jwt-signing-key-file=$JWT_SIGNING_KEY_FILE \
@@ -29,6 +31,7 @@ userme \
      --mail-smtp-username=$MAIL_SMTP_USER \
      --mail-smtp-password=$MAIL_SMTP_PASS \
      --mail-from-address=$MAIL_FROM_ADDRESS \
+     --mail-from-name=$MAIL_FROM_NAME \
      --mail-activation-subject="$MAIL_ACTIVATION_SUBJECT" \
      --mail-activation-html="$MAIL_ACTIVATION_HTML" \
      --mail-password-reset-subject="$MAIL_PASSWORD_RESET_SUBJECT" \
