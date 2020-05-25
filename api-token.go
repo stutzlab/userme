@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -39,18 +40,63 @@ func tokenCreate() func(*gin.Context) {
 			return
 		}
 
-		phash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+		// phash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 		var u User
-		db1 := db.First(&u, "email = ? AND password_hash = ? AND activation_date IS NOT NULL", email, phash)
+		db1 := db.First(&u, "email = ? AND activation_date IS NOT NULL", email)
 
 		if db1.RecordNotFound() {
-			c.JSON(450, gin.H{"message": "Email/password combination not valid"})
+			c.JSON(450, gin.H{"message": "Email/password not valid"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
 			return
 		}
 
 		if db1.Error != nil {
 			logrus.Warnf("Error authenticating user %s. err=%s", email, db1.Error)
+			c.JSON(500, gin.H{"message": "Server error"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+			return
+		}
+
+		logrus.Debugf("Verify wrong password retries")
+		if u.WrongPasswordDate != nil {
+			if int(u.WrongPasswordCount) >= opt.passwordRetriesMax {
+				logrus.Infof("Max wrong password retries reached for %s. Account locked", email)
+				c.JSON(465, gin.H{"message": "Max wrong password retries reached. Reset your password"})
+				invocationCounter.WithLabelValues(pmethod, ppath, "465").Inc()
+				return
+			}
+			delaySeconds := opt.passwordRetriesTimeSeconds * int(math.Pow(2, float64(u.WrongPasswordCount)))
+			if time.Now().Before(u.WrongPasswordDate.Add(time.Duration(delaySeconds) * time.Second)) {
+				logrus.Infof("Password retry time delay enforced for %s. delay=%d", email, delaySeconds)
+				c.JSON(450, gin.H{"message": "Email/password not valid"})
+				invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+				return
+			}
+		}
+
+		err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
+		if err != nil {
+			logrus.Infof("Invalid password for %s", email)
+
+			logrus.Debugf("Increment wrong password counters")
+			err = db.Model(&u).UpdateColumn("wrong_password_count", u.WrongPasswordCount+1).Error
+			if err != nil {
+				logrus.Warnf("Couldn't increment wrong password count for %s. err=%s", email, err)
+			}
+			err = db.Model(&u).UpdateColumn("wrong_password_date", time.Now()).Error
+			if err != nil {
+				logrus.Warnf("Couldn't update wrong password date for %s. err=%s", email, err)
+			}
+
+			c.JSON(450, gin.H{"message": "Email/password not valid"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+			return
+		}
+
+		logrus.Debugf("Reset wrong password counters")
+		err = resetWrongPasswordCounters(&u)
+		if err != nil {
+			logrus.Warnf("Couldn't zero wrong password count for %s. err=%s", email, err)
 			c.JSON(500, gin.H{"message": "Server error"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
 			return
@@ -159,7 +205,7 @@ func validateUserAndOutputTokensToResponse(u *User, c *gin.Context, pmethod stri
 		}
 	}
 
-	logrus.Debugf("User %s authenticated and validated")
+	logrus.Debugf("User %s authenticated and validated", u.Email)
 	tokensResponse, err := createAccessAndRefreshToken(u.Name, u.Email, opt.accessTokenDefaultScope)
 	if err != nil {
 		logrus.Warnf("Error generating tokens for user %s. err=%s", u.Email, err)
@@ -170,5 +216,5 @@ func validateUserAndOutputTokensToResponse(u *User, c *gin.Context, pmethod stri
 
 	c.JSON(200, tokensResponse)
 	invocationCounter.WithLabelValues(pmethod, ppath, "200").Inc()
-	logrus.Debugf("Tokens for %s generated and sent to response")
+	logrus.Debugf("Tokens for %s generated and sent to response", u.Name)
 }

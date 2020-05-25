@@ -66,6 +66,7 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 450 - invalid/inexistent email/password combination
     * 455 - password expired
     * 460 - account disabled
+    * 465 - account locked
     * 500 - server error
   * response body json: name, jwtAccessToken, jwtRefreshToken, accessTokenExpirationDate, refreshTokenExpirationDate
 

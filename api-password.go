@@ -28,3 +28,26 @@ func (h *HTTPServer) setupPasswordHandlers() {
 	// h.router.POST("/user/:email/reset-password", passwordReset())
 	// h.router.POST("/user/:email/change-password", changePassword())
 }
+
+// password change
+// logrus.Debugf("Reset wrong password counters")
+// err1 := db.Model(&u).UpdateColumn("wrong_password_count", 0).Error
+// err2 := db.Model(&u).UpdateColumn("wrong_password_date", nil).Error
+// if err1 != nil || err2 != nil {
+// 	logrus.Warnf("Couldn't zero wrong password count for %s. err1=%s err2=%s", email, err1, err2)
+// 	c.JSON(500, gin.H{"message": "Server error"})
+// 	invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+// 	return
+// }
+
+func resetWrongPasswordCounters(u *User) error {
+	err := db.Model(&u).UpdateColumn("wrong_password_count", 0).Error
+	if err != nil {
+		return err
+	}
+	err = db.Model(&u).UpdateColumn("wrong_password_date", nil).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
