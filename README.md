@@ -164,3 +164,4 @@ Userme gives you a bunch of API services for basic account creation, token valid
 
 * https://www.getpostman.com/collections/ec55eac4574064ce15e2
 
+* Import tests/collection.json to Postman so that you can test and update the automated tests
