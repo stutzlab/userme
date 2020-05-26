@@ -6,12 +6,21 @@ Userme gives you a bunch of API services for basic account creation, token valid
 
 ## Basics
 
-* A user is created with a email/password
+* A user is created with just a name, email and password
 * A JWT access token is returned against a email/password validation so that your application can check that he/she was authenticated
 * You have two tokens:
   * Access token - the token used for your http requests to check if the user is OK. Will be invalidated in a matter of minutes or hours
   * Refresh token - a token that can be used by the client application to recreate an Access Token even after it has expired. Useful to avoid the user to have to retype his/hers password, for example, in a mobile application so that the user won't have to login each time the application is opened.
 * There are APIs for password reseting (by sending email) and password change
+* For a successful token creation (authentication):
+  * User account must be enabled
+  * The provided email/password must match
+  * The password must be still valid (not expired)
+  * User account must not be locked (max wrong password retries reached)
+    * For each wrong password trial, an internal counter will double the time to permit a new password retry only after some time, until max retries is reached. You can configure the "doubled" delay in INCORRENT_PASSWORD_TIME_SECONDS and max retries in INCORRECT_PASSWORD_MAX_RETRIES
+* For a successful access token creation from refresh tokens
+  * The account must be enabled
+  * The password must be still valid (not expired)
 * In future we may add TOTP capabilities too. Please contribute on that!
 
 ## Rest API
@@ -37,26 +46,30 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 500 - server error
   * response body json: name, jwtAccessToken, jwtRefreshToken, accessTokenExpirationDate, refreshTokenExpirationDate
 
-* POST /user/:email/request-reset-password
+* POST /user/:email/password-reset-request
   * response status
     * 202 - password reset request accepted (maybe email doesn't exist and email won't be sent, but we don't want to give this clue to abusers ;), so this kind of details can be accessed only on server logs)
     * 500 - server error
 
-* POST /user/:email/reset-password
-  * resquest header: Bearer <reset-password-token>
+* POST /user/:email/password-reset-change
+  * resquest header: Bearer <password reset token>
   * request body json: newPassword
   * response status
     * 200 - password changed successfuly
     * 450 - invalid token
+    * 455 - invalid account
     * 460 - invalid new password
     * 500 - server error
 
-* POST /user/:email/change-password
-  * request body json: currentPassword, newPassword
+* POST /user/:email/password-change
+  * resquest header: Bearer <access token>
+  * request body json: currentPassword, password
   * response status:
     * 200 - password changed successfuly
-    * 450 - wrong current password (this will be used to indicate that the email doesn't exist too)
+    * 450 - invalid token
+    * 455 - invalid account
     * 460 - invalid new password
+    * 470 - invalid current password
     * 500 - server error
 
 * POST /token
@@ -97,6 +110,7 @@ Userme gives you a bunch of API services for basic account creation, token valid
 * ACCESS_TOKEN_EXPIRATION_MINUTES - Access Token expiration time after creation. This is the token used in requests to the server. If you want to extend this time, use a Refresh Token to get a new Access Token at endpoint /token/refresh. defaults to '480'
 * REFRESH_TOKEN_EXPIRATION_MINUTES - Refresh token expiration time. This token can be used to get new Access Tokens, but we will verify if this account is enabled/unlock before doing so. Probably much higher than access tokens expiration because this token can be used to extend long time authentications, for example, for supporting mobile applications to keep authenticated after being closed etc. defaults to '40320'
 * VALIDATION_TOKEN_EXPIRATION_MINUTES - Validation token expiration in minutes. This is the time the link sent to email will remain valid. defaults to '20'
+* PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES - Password reset token expiration in minutes. This is the time the link sent to email will remain valid. defaults to '5'
 * ACCESS_TOKEN_DEFAULT_SCOPE - Scope (claim) included in all tokens indicating a good authentication. defaults to 'basic'
 * INCORRECT_PASSWORD_MAX_RETRIES - Max number of wrong password retries during user authentication before the account gets locked (then it will need a "password reset"). defaults to '5'
 * INCORRENT_PASSWORD_TIME_SECONDS - Time to permit a new password retry base. This base is doubled each time the user misses the password. For example: With value of '1', the user can do the first retry after 1 second, the second retry after 2 seconds, third retry after 4 seconds, forth retry after 8 seconds until reaching MAX_RETRIES. defaults to '1'
@@ -124,7 +138,7 @@ Userme gives you a bunch of API services for basic account creation, token valid
 * MAIL_ACTIVATION_SUBJECT - Mail Subject used on account activation messages. required. Example: ```Activate your account at Berimbau.com!```
 * MAIL_ACTIVATION_HTML - Mail HTML Body used on account activation messages. Use $DISPLAY_NAME and $ACTIVATION_TOKEN for string templating. required. Example: ```<b>Hi $DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=$ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>```
 * MAIL_PASSWORD_RESET_SUBJECT - Mail Subject used on password reset messages. required. Example: ```Password reset requested at Test.com```
-* MAIL_PASSWORD_RESET_HTML - Mail HTML Body used on password reset messages. Use $DISPLAY_NAME and $ACTIVATION_TOKEN for string templating. required. Example: ```<b>Hi $DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=$ACTIVATION_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>```
+* MAIL_PASSWORD_RESET_HTML - Mail HTML Body used on password reset messages. Use $DISPLAY_NAME and $PASSWORD_RESET_TOKEN for string templating. required. Example: ```<b>Hi $DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=$PASSWORD_RESET_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>```
 
 ## Volume
 

@@ -88,12 +88,6 @@ func createUser() func(*gin.Context) {
 			return
 		}
 
-		var passwordValidUntil *time.Time
-		if opt.passwordExpirationDays > 0 {
-			tp := time.Unix(time.Now().Unix()+int64(60*60*24*opt.passwordExpirationDays), 0)
-			passwordValidUntil = &tp
-		}
-
 		u0 := User{
 			Email:              email,
 			Enabled:            1,
@@ -102,7 +96,7 @@ func createUser() func(*gin.Context) {
 			PasswordDate:       time.Now(),
 			PasswordHash:       string(phash),
 			ActivationDate:     nil,
-			PasswordValidUntil: passwordValidUntil,
+			PasswordValidUntil: generatePasswordValidUntil(),
 		}
 		if opt.accountActivationMethod == "direct" {
 			now := time.Now()
@@ -136,14 +130,15 @@ func createUser() func(*gin.Context) {
 		htmlBody = strings.ReplaceAll(htmlBody, "$ACTIVATION_TOKEN", activationTokenString)
 		err = sendMail(opt.mailActivationSubject, htmlBody, email, u0.Name)
 		if err != nil {
-			logrus.Warnf("Couldn't send email to %s (%s). err=%s", email, opt.mailActivationSubject, err)
-			mailCounter.WithLabelValues("500").Inc()
+			logrus.Warnf("Couldn't send account validation email to %s (%s). err=%s", email, opt.mailActivationSubject, err)
+			mailCounter.WithLabelValues("POST", "activation", "500").Inc()
 			c.JSON(500, gin.H{"message": "Server error"})
 			return
 		}
 
 		logrus.Debugf("Account created and activation link sent to email %s", email)
 		logrus.Debugf("Activation token=%s", activationTokenString)
+		mailCounter.WithLabelValues("POST", "activation", "202").Inc()
 		c.JSON(250, gin.H{"message": "Account created and activation link sent to email"})
 		invocationCounter.WithLabelValues(pmethod, ppath, "250").Inc()
 		return

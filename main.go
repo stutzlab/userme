@@ -24,6 +24,7 @@ type options struct {
 	accessTokenDefaultExpirationMinutes  int
 	refreshTokenDefaultExpirationMinutes int
 	validationTokenExpirationMinutes     int
+	passwordResetTokenExpirationMinutes  int
 	accessTokenDefaultScope              string
 	jwtIssuer                            string
 	jwtSigningMethod                     string
@@ -68,7 +69,8 @@ func main() {
 	corsAllowedOrigins0 := flag.String("cors-allowed-origins", "*", "Cors allowed origins for this server")
 	accessTokenDefaultExpirationMinutes0 := flag.Int("accesstoken-expiration-minutes", 480, "Default access token expiration age")
 	refreshTokenDefaultExpirationMinutes0 := flag.Int("refreshtoken-expiration-minutes", 40320, "Default refresh token expiration age")
-	validationTokenExpirationMinutes0 := flag.Int("validationtoken-expiration-minutes", 20, "Validation token expiration age (for email confirmations)")
+	validationTokenExpirationMinutes0 := flag.Int("validationtoken-expiration-minutes", 20, "Validation token expiration age (sent to email)")
+	passwordResetTokenExpirationMinutes0 := flag.Int("passwordresettoken-expiration-minutes", 20, "Password reset token expiration age (sent to email)")
 	accessTokenDefaultScope0 := flag.String("accesstoken-default-scope", "basic", "Default claim (scope) added to all access tokens")
 	passwordRetriesMax0 := flag.Int("password-retries-max", 5, "Max number of incorrect password retries")
 	passwordRetriesTimeSeconds0 := flag.Int("password-retries-time", 5, "Max number of incorrect password retries")
@@ -120,6 +122,7 @@ func main() {
 		accessTokenDefaultExpirationMinutes:  *accessTokenDefaultExpirationMinutes0,
 		refreshTokenDefaultExpirationMinutes: *refreshTokenDefaultExpirationMinutes0,
 		validationTokenExpirationMinutes:     *validationTokenExpirationMinutes0,
+		passwordResetTokenExpirationMinutes:  *passwordResetTokenExpirationMinutes0,
 		accessTokenDefaultScope:              *accessTokenDefaultScope0,
 		mailFromName:                         *mailFromName0,
 		jwtSigningMethod:                     *jwtSigningMethod0,

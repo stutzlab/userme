@@ -40,7 +40,6 @@ func tokenCreate() func(*gin.Context) {
 			return
 		}
 
-		// phash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 		var u User
 		db1 := db.First(&u, "email = ? AND activation_date IS NOT NULL", email)
 

@@ -33,6 +33,8 @@ var mailCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name: "mail_sent_total",
 	Help: "Total e-mails sent",
 }, []string{
+	"method",
+	"path",
 	"status",
 })
 

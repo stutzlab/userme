@@ -17,6 +17,7 @@ userme \
      --accesstoken-default-scope=$ACCESS_TOKEN_DEFAULT_SCOPE \
      --refreshtoken-expiration-minutes=$REFRESH_TOKEN_EXPIRATION_MINUTES \
      --validationtoken-expiration-minutes=$VALIDATION_TOKEN_EXPIRATION_MINUTES \
+     --passwordresettoken-expiration-minutes=$PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES \
      --password-retries-max=$INCORRECT_PASSWORD_MAX_RETRIES \
      --password-retries-time=$INCORRENT_PASSWORD_TIME_SECONDS \
      --password-expiration-days=$PASSWORD_EXPIRATION_DAYS \

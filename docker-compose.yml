@@ -23,9 +23,9 @@ services:
       - MAIL_FROM_NAME=Berimbal
       - MAIL_FROM_ADDRESS=e7a3b40037-7cbde1@inbox.mailtrap.io
       - MAIL_ACTIVATION_SUBJECT=Activate your account at Berimbau.com!
-      - MAIL_ACTIVATION_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>
-      - MAIL_PASSWORD_RESET_SUBJECT=Password reset requested at Test.com
-      - MAIL_PASSWORD_RESET_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=ACTIVATION_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>
+      - MAIL_ACTIVATION_HTML=<b>Hi $DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=$ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>
+      - MAIL_PASSWORD_RESET_SUBJECT=Password reset requested at Berimbau.com
+      - MAIL_PASSWORD_RESET_HTML=<b>Hi $DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=$ACTIVATION_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>
       - ACCOUNT_ACTIVATION_METHOD=mail
       # - CORS_ALLOWED_ORIGINS             '*'
       # - ACCESS_TOKEN_EXPIRATION_MINUTES  '480'
