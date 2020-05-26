@@ -26,6 +26,7 @@ services:
       - MAIL_ACTIVATION_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>
       - MAIL_PASSWORD_RESET_SUBJECT=Password reset requested at Berimbau.com
       - MAIL_PASSWORD_RESET_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=PASSWORD_RESET_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>
+      - MAIL_TOKENS_FOR_TESTS=true
       - ACCOUNT_ACTIVATION_METHOD=mail
       # - CORS_ALLOWED_ORIGINS             '*'
       # - ACCESS_TOKEN_EXPIRATION_MINUTES  '480'

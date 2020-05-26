@@ -48,6 +48,7 @@ type options struct {
 	mailActivationHTMLBody    string
 	mailResetPasswordSubject  string
 	mailResetPasswordHTMLBody string
+	mailTokensTests           string
 }
 
 var (
@@ -91,6 +92,7 @@ func main() {
 	mailActivationHTML0 := flag.String("mail-activation-html", "", "Mail activation html body. Use placeholders DISPLAY_NAME and ACTIVATION_TOKEN as templating")
 	mailResetPasswordSubject0 := flag.String("mail-password-reset-subject", "", "Mail password reset subject")
 	mailResetPasswordHTML0 := flag.String("mail-password-reset-html", "", "Mail password reset html body. Use placeholders DISPLAY_NAME and ACTIVATION_TOKEN as templating")
+	mailTokensTests0 := flag.String("mail-tokens-tests", "", "Send mail tokens to response headers. Useful for testing enviroments. NEVER use this in production as this makes second factor (e-mail) invalid for our application.")
 
 	flag.Parse()
 
@@ -143,6 +145,7 @@ func main() {
 		mailResetPasswordHTMLBody: *mailResetPasswordHTML0,
 		mailActivationSubject:     *mailActivationSubject0,
 		mailActivationHTMLBody:    *mailActivationHTML0,
+		mailTokensTests:           *mailTokensTests0,
 	}
 
 	if opt.dbDialect != "sqlite3" {

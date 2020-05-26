@@ -4,9 +4,9 @@
   "values": [
     {
       "enabled": true,
-      "key": "serverUrl",
+      "key": "usermeHost",
       "type": "text",
-      "value": "${SFS_URL}"
+      "value": "${USERME_HOST}"
     }
   ],
   "timestamp": 1512309207513,

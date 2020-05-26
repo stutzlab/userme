@@ -1,4 +1,4 @@
-version: '3'
+version: '3.5'
 
 services:
 
@@ -7,14 +7,34 @@ services:
     image: flaviostutz/userme
     environment:
       - LOG_LEVEL=debug
+      - DB_DIALECT=sqlite3
+      - MAIL_SMTP_HOST=smtp.mailtrap.io
+      - MAIL_SMTP_PORT=2525
+      - MAIL_SMTP_USER=d999da469e2965
+      - MAIL_SMTP_PASS=0e62129c398c1c
+      - MAIL_FROM_NAME=Testanzu
+      - MAIL_FROM_ADDRESS=e7a3b40037-7cbde1@inbox.mailtrap.io
+      - MAIL_ACTIVATION_SUBJECT=Activate your account at Testanzu.com!
+      - MAIL_ACTIVATION_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>
+      - MAIL_PASSWORD_RESET_SUBJECT=Password reset requested at Testanzu.com
+      - MAIL_PASSWORD_RESET_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=PASSWORD_RESET_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>
+      - MAIL_TOKENS_FOR_TESTS=true
+      - ACCOUNT_ACTIVATION_METHOD=mail
+      - JWT_SIGNING_METHOD=ES256
+    secrets:
+      - jwt-signing-key
 
   sut:
     build: tests/.
     environment:
-      - SFS_URL=http://userme:6000
+      - USERME_HOST=http://userme:6000
       - WAIT_TIME_SECONDS=5
       - WAIT_CONNECT_HOST=userme
       - WAIT_CONNECT_PORT=6000
     depends_on:
       - userme
+
+secrets:
+  jwt-signing-key:
+    file: ./tests/test-key.pem
 

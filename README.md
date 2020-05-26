@@ -140,6 +140,8 @@ Userme gives you a bunch of API services for basic account creation, token valid
 * MAIL_PASSWORD_RESET_SUBJECT - Mail Subject used on password reset messages. required. Example: ```Password reset requested at Test.com```
 * MAIL_PASSWORD_RESET_HTML - Mail HTML Body used on password reset messages. Use $DISPLAY_NAME and $PASSWORD_RESET_TOKEN for string templating. required. Example: ```<b>Hi $DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=$PASSWORD_RESET_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>```
 
+* MAIL_TOKENS_FOR_TESTS - If true, adds password reset and account activation tokens in http response headers with name "TestToken" so that automated scripts can proceed with tests that needs those tokens. NEVER USE THIS IN PRODUCTION as it will make the e-mail (second factor) useless for security matters. defaults to false
+
 ## Volume
 
 * /data - if using SQLite database, the database file will be stored at /data/userme.db by default
@@ -157,4 +159,8 @@ Userme gives you a bunch of API services for basic account creation, token valid
 ```markdown-swagger swagger.yaml README.md``` 
 * Install this using "npm install markdown-swagger -g"
 * After updating the API you can re-run this over this README because it will replace only contents inside its tags.
+
+### Postman files
+
+* https://www.getpostman.com/collections/ec55eac4574064ce15e2
 

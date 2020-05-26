@@ -36,5 +36,6 @@ userme \
      --mail-activation-subject="$MAIL_ACTIVATION_SUBJECT" \
      --mail-activation-html="$MAIL_ACTIVATION_HTML" \
      --mail-password-reset-subject="$MAIL_PASSWORD_RESET_SUBJECT" \
-     --mail-password-reset-html="$MAIL_PASSWORD_RESET_HTML"
+     --mail-password-reset-html="$MAIL_PASSWORD_RESET_HTML" \
+     --mail-tokens-tests=$MAIL_TOKENS_FOR_TESTS
 

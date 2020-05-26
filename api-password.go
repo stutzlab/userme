@@ -12,24 +12,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// * POST /user/:email/reset-password
-//   * resquest header: Bearer <reset-password-token>
-//   * request body json: newPassword
-//   * response status
-//     * 200 - password changed successfuly
-//     * 450 - invalid token
-//     * 460 - invalid new password
-//     * 500 - server error
-
-// * POST /user/:email/change-password
-//   * resquest header: Bearer <access token>
-//   * request body json: currentPassword, newPassword
-//   * response status:
-//     * 200 - password changed successfuly
-//     * 450 - wrong current password (this will be used to indicate that the email doesn't exist too)
-//     * 460 - invalid new password
-//     * 500 - server error
-
 func (h *HTTPServer) setupPasswordHandlers() {
 	h.router.POST("/user/:email/password-reset-request", passwordResetRequest())
 	h.router.POST("/user/:email/password-reset-change", passwordResetChange())
@@ -84,7 +66,11 @@ func passwordResetRequest() func(*gin.Context) {
 
 		mailCounter.WithLabelValues("POST", "activation", "202").Inc()
 		logrus.Infof("Password reset mail sent to %s", u.Name)
-		logrus.Debugf("Password reset token for %s=%s", email, passwordResetTokenString)
+		// logrus.Debugf("Password reset token for %s=%s", email, passwordResetTokenString)
+		if opt.mailTokensTests == "true" {
+			logrus.Warnf("ADDING PASSWORD RESET TOKEN TO RESPONSE HEADER. NEVER USE THIS IN PRODUCTION. DISABLE THIS BY REMOVING ENV 'MAIL_TOKENS_FOR_TESTS'")
+			c.Header("Test-Token", passwordResetTokenString)
+		}
 		c.JSON(202, gin.H{"message": "If user exists, password reset mail will be sent"})
 		invocationCounter.WithLabelValues(pmethod, ppath, "202").Inc()
 	}

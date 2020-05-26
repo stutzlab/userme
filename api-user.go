@@ -137,8 +137,12 @@ func createUser() func(*gin.Context) {
 		}
 
 		logrus.Debugf("Account created and activation link sent to email %s", email)
-		logrus.Debugf("Activation token=%s", activationTokenString)
+		// logrus.Debugf("Activation token=%s", activationTokenString)
 		mailCounter.WithLabelValues("POST", "activation", "202").Inc()
+		if opt.mailTokensTests == "true" {
+			logrus.Warnf("ADDING ACTIVATION TOKEN TO RESPONSE HEADER. NEVER USE THIS IN PRODUCTION. DISABLE THIS BY REMOVING ENV 'MAIL_TOKENS_FOR_TESTS'")
+			c.Header("Test-Token", activationTokenString)
+		}
 		c.JSON(250, gin.H{"message": "Account created and activation link sent to email"})
 		invocationCounter.WithLabelValues(pmethod, ppath, "250").Inc()
 		return

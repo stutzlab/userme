@@ -1,31 +1,211 @@
 {
 	"info": {
-		"_postman_id": "f853fc4a-1a18-489f-9492-f54f2d37a85c",
-		"name": "simple-file-server",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+		"_postman_id": "bdf5e5b0-4004-4a77-b2c6-e2e0a798b688",
+		"name": "userme-tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "POST / create file",
+			"name": "PUT /user/:email",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "fe6c8be9-d58d-46ed-ad7a-448bcbdf54cc",
+						"id": "0b960a75-c9aa-4de3-a85f-31c174e899a1",
 						"exec": [
-							"pm.test(\"Status code is 201\", function () {",
-							"    pm.response.to.have.status(201);",
+							"pm.test(\"Activation Token for tests present\", function () {",
+							"    pm.response.to.have.header(\"Test-Token\");",
 							"});",
+							"pm.test(\"Status is 250\", function () {",
+							"    pm.response.to.have.status(250);",
+							"});",
+							"const activationToken = pm.response.headers.get(\"Test-Token\")",
+							"postman.setEnvironmentVariable(\"activationToken\", activationToken);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "12c2fb45-4b46-41b3-9bbc-d3d0fca69ac8",
+						"exec": [
+							"postman.setEnvironmentVariable(\"email1\", 'test' + Math.round(Math.random() * 99999999)+ \"@test.com\");",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"password\": \"testtest\",\n\t\"name\": \"{{email1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{usermeHost}}/user/{{email1}}",
+					"host": [
+						"{{usermeHost}}"
+					],
+					"path": [
+						"user",
+						"{{email1}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST /user/:email/activate",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6e8778d1-8ad4-46f4-80a1-e53c1d020918",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.test(\"Status is 202\", function () {",
+							"    pm.response.to.have.status(202);",
+							"})",
 							"",
-							"pm.test(\"Location header returned\", function () {",
-							"    pm.response.to.have.header(\"Location\");",
-							"});",
-							"postman.setEnvironmentVariable(\"location1\", pm.response.headers.get(\"Location\"));",
+							"pm.test(\"Account details returned\", function () {",
+							"    pm.expect(jsonData).to.have.property('email');",
+							"    pm.expect(jsonData).to.have.property('message');",
+							"    pm.expect(jsonData).to.have.property('name');",
+							"})",
 							"",
-							"pm.test(\"ETag header returned\", function () {",
-							"    pm.response.to.have.header(\"ETag\");",
-							"});",
-							"postman.setEnvironmentVariable(\"etag1\", pm.response.headers.get(\"ETag\"));",
+							"pm.test(\"Access and refresh tokens returned\", function () {",
+							"    pm.expect(jsonData).to.have.property('accessToken');",
+							"    pm.expect(jsonData).to.have.property('accessTokenExpiration');",
+							"    pm.expect(jsonData).to.have.property('refreshToken');",
+							"    pm.expect(jsonData).to.have.property('refreshTokenExpiration');",
+							"})",
+							"",
+							"postman.setEnvironmentVariable(\"accessToken\", jsonData.accessToken);",
+							"postman.setEnvironmentVariable(\"refreshToken\", jsonData.refreshToken);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{activationToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "{{usermeHost}}/user/{{email1}}/activate",
+					"host": [
+						"{{usermeHost}}"
+					],
+					"path": [
+						"user",
+						"{{email1}}",
+						"activate"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET /token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "3e7e650e-9570-43d1-bb60-7579d9868c1b",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.test(\"Status is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"})",
+							"",
+							"pm.test(\"Token claims present\", function () {",
+							"    pm.expect(jsonData).to.have.property('typ');",
+							"    pm.expect(jsonData).to.have.property('sub');",
+							"    pm.expect(jsonData).to.have.property('exp');",
+							"    pm.expect(jsonData).to.have.property('jti');",
+							"})",
+							"",
+							"pm.test(\"Token sub=={{mail1}}\", function () {",
+							"    pm.expect(jsonData.sub).to.eql(postman.getEnvironmentVariable(\"email1\"))",
+							"})",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{accessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{usermeHost}}/token",
+					"host": [
+						"{{usermeHost}}"
+					],
+					"path": [
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST /token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "355a23fc-d4f7-4491-8215-09e9d9ffdcfa",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"",
+							"pm.test(\"Status is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"})",
+							"",
+							"pm.test(\"Account details returned\", function () {",
+							"    pm.expect(jsonData).to.have.property('email');",
+							"    pm.expect(jsonData).to.have.property('name');",
+							"})",
+							"",
+							"pm.test(\"Access and refresh tokens returned\", function () {",
+							"    pm.expect(jsonData).to.have.property('accessToken');",
+							"    pm.expect(jsonData).to.have.property('accessTokenExpiration');",
+							"    pm.expect(jsonData).to.have.property('refreshToken');",
+							"    pm.expect(jsonData).to.have.property('refreshTokenExpiration');",
+							"})",
+							"",
+							"postman.setEnvironmentVariable(\"accessToken\", jsonData.accessToken);",
+							"postman.setEnvironmentVariable(\"refreshToken\", jsonData.refreshToken);",
 							""
 						],
 						"type": "text/javascript"
@@ -37,23 +217,49 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "test"
+					"raw": "{\n\t\"email\": \"{{email1}}\",\n\t\"password\": \"testtest\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
 				},
-				"url": "{{serverUrl}}"
+				"url": {
+					"raw": "{{usermeHost}}/token",
+					"host": [
+						"{{usermeHost}}"
+					],
+					"path": [
+						"token"
+					]
+				}
 			},
 			"response": []
 		},
 		{
-			"name": "GET /[id] unmodified",
+			"name": "POST /token/refresh",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "2d2a8de2-f868-4eaf-8098-0ec94b7f9f13",
+						"id": "aa501880-8277-40f8-9e14-004d3f68b9a7",
 						"exec": [
-							"pm.test(\"Status code is 304\", function () {",
-							"    pm.response.to.have.status(304);",
-							"});",
+							"var jsonData = pm.response.json();",
+							"",
+							"pm.test(\"Account details returned\", function () {",
+							"    pm.expect(jsonData).to.have.property('email');",
+							"    pm.expect(jsonData).to.have.property('name');",
+							"})",
+							"",
+							"pm.test(\"Access and refresh tokens returned\", function () {",
+							"    pm.expect(jsonData).to.have.property('accessToken');",
+							"    pm.expect(jsonData).to.have.property('accessTokenExpiration');",
+							"    pm.expect(jsonData).to.have.property('refreshToken');",
+							"    pm.expect(jsonData).to.have.property('refreshTokenExpiration');",
+							"})",
+							"",
+							"postman.setEnvironmentVariable(\"accessToken\", jsonData.accessToken);",
+							"postman.setEnvironmentVariable(\"refreshToken\", jsonData.refreshToken);",
 							""
 						],
 						"type": "text/javascript"
@@ -61,65 +267,42 @@
 				}
 			],
 			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "If-None-Match",
-						"type": "text",
-						"value": "{{etag1}}"
-					}
-				],
-				"url": "{{location1}}"
-			},
-			"response": []
-		},
-		{
-			"name": "GET /[id] modified",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"id": "c6c25a6f-5f7a-4262-a044-fc19ef073a0e",
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"});",
-							"",
-							"pm.test(\"ETag header returned\", function () {",
-							"    pm.response.to.have.header(\"ETag\");",
-							"});",
-							"",
-							"pm.test(\"Body is correct\", function () {",
-							"    pm.response.to.have.body(\"test\");",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{refreshToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
 				"header": [],
-				"url": "{{location1}}"
+				"url": {
+					"raw": "{{usermeHost}}/token/refresh",
+					"host": [
+						"{{usermeHost}}"
+					],
+					"path": [
+						"token",
+						"refresh"
+					]
+				}
 			},
 			"response": []
 		},
 		{
-			"name": "PUT /[id] without etag check",
+			"name": "POST /user/:email/password-change",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "91425595-8e40-498b-a14c-151b6aeabc9a",
+						"id": "5c21b277-6b10-443b-9abe-f4f945d4229f",
 						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
+							"pm.test(\"Status is 200\", function () {",
 							"    pm.response.to.have.status(200);",
-							"});",
-							"",
-							"pm.test(\"ETag header returned\", function () {",
-							"    pm.response.to.have.header(\"ETag\");",
-							"});",
-							"postman.setEnvironmentVariable(\"etag1\", pm.response.headers.get(\"ETag\"));",
+							"})",
 							""
 						],
 						"type": "text/javascript"
@@ -127,138 +310,59 @@
 				}
 			],
 			"request": {
-				"method": "PUT",
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{accessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "test2\n"
-				},
-				"url": "{{location1}}"
-			},
-			"response": []
-		},
-		{
-			"name": "PUT /[id] with invalid etag",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"id": "86caea83-552c-4f15-ad25-60fdde7126bb",
-						"exec": [
-							"pm.test(\"Status code is 412\", function () {",
-							"    pm.response.to.have.status(412);",
-							"});",
-							""
-						],
-						"type": "text/javascript"
+					"raw": "{\n\t\"password\": \"testtest2\",\n\t\"currentPassword\": \"testtest\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
 					}
+				},
+				"url": {
+					"raw": "{{usermeHost}}/user/{{email1}}/password-change",
+					"host": [
+						"{{usermeHost}}"
+					],
+					"path": [
+						"user",
+						"{{email1}}",
+						"password-change"
+					]
 				}
-			],
-			"request": {
-				"method": "PUT",
-				"header": [
-					{
-						"key": "If-Match",
-						"value": "ANYTHING",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "test3"
-				},
-				"url": "{{location1}}"
 			},
 			"response": []
 		},
 		{
-			"name": "PUT /[id] with valid etag",
+			"name": "POST /user/:email/password-reset-request",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "7be5a331-ed0c-4659-98ff-4b3a681d9518",
+						"id": "e6d7edff-223d-471c-8889-c1b5091d43a1",
 						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
+							"pm.test(\"Status is 202\", function () {",
+							"    pm.response.to.have.status(202);",
 							"});",
 							"",
-							"pm.test(\"ETag header returned\", function () {",
-							"    pm.response.to.have.header(\"ETag\");",
-							"});",
-							"postman.setEnvironmentVariable(\"etag1\", pm.response.headers.get(\"ETag\"));",
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "PUT",
-				"header": [
-					{
-						"key": "If-Match",
-						"value": "{{etag1}}",
-						"type": "text"
-					},
-					{
-						"key": "X-Cache-Control",
-						"value": "max-age=3",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "test4"
-				},
-				"url": "{{location1}}"
-			},
-			"response": []
-		},
-		{
-			"name": "GET /[id] modified with etag check",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"id": "c81f3ded-cefb-4783-a9a4-96962df45929",
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
+							"pm.test(\"Password Reset Token for tests present\", function () {",
+							"    pm.response.to.have.header(\"Test-Token\");",
 							"});",
 							"",
-							"pm.test(\"Cache-Control present\", function () {",
-							"    pm.response.to.be.header(\"Cache-Control\", \"max-age=3\");",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "If-None-Match",
-						"type": "text",
-						"value": "ANYOTHERETAG"
-					}
-				],
-				"url": "{{location1}}"
-			},
-			"response": []
-		},
-		{
-			"name": "DELETE /[id] inexistent",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"id": "ec674b4a-d05a-45e0-b64c-5714a865b1bb",
-						"exec": [
-							"pm.test(\"Status code is 404\", function () {",
-							"    pm.response.to.have.status(404);",
-							"});",
+							"const activationToken = pm.response.headers.get(\"Test-Token\")",
+							"postman.setEnvironmentVariable(\"passwordResetToken\", activationToken);",
 							""
 						],
 						"type": "text/javascript"
@@ -266,21 +370,34 @@
 				}
 			],
 			"request": {
-				"method": "DELETE",
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
 				"header": [],
-				"url": "{{location1}}aaa"
+				"url": {
+					"raw": "{{usermeHost}}/user/{{email1}}/password-reset-request",
+					"host": [
+						"{{usermeHost}}"
+					],
+					"path": [
+						"user",
+						"{{email1}}",
+						"password-reset-request"
+					]
+				}
 			},
 			"response": []
 		},
 		{
-			"name": "DELETE /[id] success",
+			"name": "POST /user/:email/password-reset-change",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "610acfae-9b4e-499c-b734-1dccf1eba35d",
+						"id": "a972b698-9669-48a0-999c-74c2e293bcb3",
 						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
+							"pm.test(\"Status is 200\", function () {",
 							"    pm.response.to.have.status(200);",
 							"});",
 							""
@@ -290,9 +407,38 @@
 				}
 			],
 			"request": {
-				"method": "DELETE",
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{passwordResetToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
 				"header": [],
-				"url": "{{location1}}"
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"password\": \"testtest\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{usermeHost}}/user/{{email1}}/password-reset-change",
+					"host": [
+						"{{usermeHost}}"
+					],
+					"path": [
+						"user",
+						"{{email1}}",
+						"password-reset-change"
+					]
+				}
 			},
 			"response": []
 		}
