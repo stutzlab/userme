@@ -71,8 +71,8 @@ func passwordResetRequest() func(*gin.Context) {
 			return
 		}
 
-		htmlBody := strings.ReplaceAll(opt.mailResetPasswordHTMLBody, "$DISPLAY_NAME", u.Name)
-		htmlBody = strings.ReplaceAll(htmlBody, "$PASSWORD_RESET_TOKEN", passwordResetTokenString)
+		htmlBody := strings.ReplaceAll(opt.mailResetPasswordHTMLBody, "DISPLAY_NAME", u.Name)
+		htmlBody = strings.ReplaceAll(htmlBody, "PASSWORD_RESET_TOKEN", passwordResetTokenString)
 		err = sendMail(opt.mailResetPasswordSubject, htmlBody, email, u.Name)
 		if err != nil {
 			logrus.Warnf("Couldn't send password reset email to %s (%s). err=%s", email, opt.mailActivationSubject, err)
