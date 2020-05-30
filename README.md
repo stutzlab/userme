@@ -4,6 +4,8 @@ Userme gives you a bunch of API services for basic account creation, token valid
 <img src="signup.png" width="700" />
 <img src="signin.png" width="700" />
 
+See a full usage example at http://github.com/stutzlab/userme-demo-ui
+
 ## Basics
 
 * A user is created with just a name, email and password

@@ -20,8 +20,8 @@ func (h *HTTPServer) setupPasswordHandlers() {
 
 func passwordResetRequest() func(*gin.Context) {
 	return func(c *gin.Context) {
-		pmethod := "POST"
-		ppath := "/user/:email/password-reset-request"
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
 
 		email := strings.ToLower(c.Param("email"))
 		logrus.Debugf("passwordResetRequest email=%s", email)
@@ -78,8 +78,8 @@ func passwordResetRequest() func(*gin.Context) {
 
 func passwordResetChange() func(*gin.Context) {
 	return func(c *gin.Context) {
-		pmethod := "POST"
-		ppath := "/user/:email/password-reset-change"
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
 
 		email := strings.ToLower(c.Param("email"))
 		logrus.Debugf("passwordResetChange email=%s", email)
@@ -106,8 +106,8 @@ func passwordResetChange() func(*gin.Context) {
 
 func passwordChange() func(*gin.Context) {
 	return func(c *gin.Context) {
-		pmethod := "POST"
-		ppath := "/user/:email/password-change"
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
 
 		email := strings.ToLower(c.Param("email"))
 		logrus.Debugf("passwordChange email=%s", email)

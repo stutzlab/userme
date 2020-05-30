@@ -21,8 +21,8 @@ func (h *HTTPServer) setupTokenHandlers() {
 //TOKEN CREATION
 func tokenCreate() func(*gin.Context) {
 	return func(c *gin.Context) {
-		pmethod := "POST"
-		ppath := "/token"
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
 
 		m := make(map[string]string)
 		data, _ := ioutil.ReadAll(c.Request.Body)
@@ -166,8 +166,8 @@ func validateUserAndOutputTokensToResponse(u *User, c *gin.Context, pmethod stri
 //TOKEN REFRESH
 func tokenRefresh() func(*gin.Context) {
 	return func(c *gin.Context) {
-		pmethod := "POST"
-		ppath := "/token/refresh"
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
 
 		claims, err := loadAndValidateToken(c.Request, "refresh", "")
 		if err != nil {
@@ -209,8 +209,8 @@ func tokenRefresh() func(*gin.Context) {
 //TOKEN INFO
 func tokenInfo() func(*gin.Context) {
 	return func(c *gin.Context) {
-		pmethod := "GET"
-		ppath := "/token"
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
 
 		claims, err := loadAndValidateToken(c.Request, "access", "")
 		if err != nil {
