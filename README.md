@@ -23,6 +23,77 @@ Userme gives you a bunch of API services for basic account creation, token valid
   * The password must be still valid (not expired)
 * In future we may add TOTP capabilities too. Please contribute on that!
 
+## Usage
+
+* Create a docker-compose.yml
+
+```
+version: '3.6'
+
+services:
+
+  userme:
+    image: stutzlab/userme
+    ports:
+      - "6000:6000"
+    restart: always
+    environment:
+      - LOG_LEVEL=debug
+      - DB_DIALECT=sqlite3
+      - MAIL_SMTP_HOST=mailslurper
+      - MAIL_SMTP_PORT=2500
+      - MAIL_SMTP_USER=test
+      - MAIL_SMTP_PASS=test
+      - MAIL_FROM_NAME=Berimbal
+      - MAIL_FROM_ADDRESS=test@test.com
+      - MAIL_ACTIVATION_SUBJECT=Activate your account at Berimbau.com!
+      - MAIL_ACTIVATION_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>
+      - MAIL_PASSWORD_RESET_SUBJECT=Password reset requested at Berimbau.com
+      - MAIL_PASSWORD_RESET_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=PASSWORD_RESET_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>
+      - MAIL_TOKENS_FOR_TESTS=true
+      - ACCOUNT_ACTIVATION_METHOD=mail
+      - JWT_SIGNING_METHOD=ES256
+    secrets:
+      - jwt-signing-key
+
+  mailslurper:
+    image: marcopas/docker-mailslurper
+    ports:
+      - "8080:8080"
+      - "8085:8085"
+      - "2500:2500"
+    restart: always
+
+secrets:
+  jwt-signing-key:
+    file: ./tests/test-key.pem
+```
+
+* Run ```docker-compose up```
+
+* Create a new user
+```
+curl --location --request PUT 'http://localhost:6000/user/test1@test.com' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+	"password": "testtest",
+	"name": "test1@test.com"
+}'
+```
+
+* Validate user account using mail tester
+  * Open mailslurper at http://
+````
+curl --location --request POST 'http://localhost:6000/user/test82089130@test.com/activate' \
+--header 'Authorization: Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTA0NjYwNjEsImlhdCI6MTU5MDQ2NDI2MSwiaXNzIjoiQmVyaW1iYWwiLCJqdGkiOiIxYTExN2ViYS01M2Y4LTRjYmQtOGUyNS1mNDQ5MDdlY2FkZGYiLCJuYmYiOjE1OTA0NjQyNjEsInN1YiI6InRlc3QzMTE2OTQ3MUB0ZXN0LmNvbSIsInR5cCI6ImFjdGl2YXRpb24ifQ.poBYDyg-3zIiULtwUthsbUzpYzsJr-I3jtXZwMrJr9QKhc9ZaNXkKw9KyqWeczYxAdGZYQ37QX10xHbA1JYr5Q'
+```
+
+* Create a token with email/passoword
+
+* Check user token
+
+* For more details, check a full working with Postman example at "/tests/collection.json"
+
 ## Rest API
 
 * PUT /user/:email

@@ -4,7 +4,7 @@ services:
 
   userme:
     build: .
-    image: flaviostutz/simple-file-server
+    image: stutzlab/userme
     ports:
       - "6000:6000"
     restart: always
@@ -16,16 +16,20 @@ services:
       - DB_USERNAME=userme
       - DB_PASSWORD=userme
       - DB_NAME=userme
-      - MAIL_SMTP_HOST=smtp.mailtrap.io
-      - MAIL_SMTP_PORT=2525
-      - MAIL_SMTP_USER=d999da469e2965
-      - MAIL_SMTP_PASS=0e62129c398c1c
+      - MAIL_SMTP_HOST=mailslurper
+      - MAIL_SMTP_PORT=2500
+      - MAIL_SMTP_USER=test
+      - MAIL_SMTP_PASS=test
+      # - MAIL_SMTP_HOST=smtp.mailtrap.io
+      # - MAIL_SMTP_PORT=2525
+      # - MAIL_SMTP_USER=d999da469e2965
+      # - MAIL_SMTP_PASS=0e62129c398c1c
       - MAIL_FROM_NAME=Berimbal
       - MAIL_FROM_ADDRESS=e7a3b40037-7cbde1@inbox.mailtrap.io
       - MAIL_ACTIVATION_SUBJECT=Activate your account at Berimbau.com!
-      - MAIL_ACTIVATION_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>
+      - MAIL_ACTIVATION_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href="https://test.com/activate?t=ACTIVATION_TOKEN">Click here to complete your registration</a><p>https://test.com/activate?t=ACTIVATION_TOKEN</p><br>Be welcome!</p> <p>-Test Team.</p>
       - MAIL_PASSWORD_RESET_SUBJECT=Password reset requested at Berimbau.com
-      - MAIL_PASSWORD_RESET_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=PASSWORD_RESET_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>
+      - MAIL_PASSWORD_RESET_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href="https://test.com/reset-password?t=PASSWORD_RESET_TOKEN">Click here to reset your password</a></p><p>https://test.com/reset-password?t=PASSWORD_RESET_TOKEN</p><p>-Test Team.</p>
       - MAIL_TOKENS_FOR_TESTS=true
       - ACCOUNT_ACTIVATION_METHOD=mail
       # - CORS_ALLOWED_ORIGINS             '*'
@@ -54,17 +58,24 @@ services:
       - MYSQL_DATABASE=userme
     volumes: 
       - mysql-data:/var/lib/mysql
-    
+
   adminer:
     image: adminer:4.7.6
     restart: always
     ports:
-      - "8080:8080"
+      - "8282:8080"
 
+  mailslurper:
+    image: marcopas/docker-mailslurper
+    ports:
+      - "8080:8080"
+      - "8085:8085"
+      - "2500:2500"
+    restart: always
 
 secrets:
   jwt-signing-key:
-    file: ./test-jwt-key.pem
+    file: ./tests/test-key.pem
 
 volumes:
   mysql-data:
