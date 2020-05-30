@@ -82,15 +82,31 @@ curl --location --request PUT 'http://localhost:6000/user/test1@test.com' \
 ```
 
 * Validate user account using mail tester
-  * Open mailslurper at http://
+  * Open mailslurper at http://localhost:8080
+  * Find last email with registration link and extract the token from URL and paste after "Bearer"
+
 ````
-curl --location --request POST 'http://localhost:6000/user/test82089130@test.com/activate' \
---header 'Authorization: Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTA0NjYwNjEsImlhdCI6MTU5MDQ2NDI2MSwiaXNzIjoiQmVyaW1iYWwiLCJqdGkiOiIxYTExN2ViYS01M2Y4LTRjYmQtOGUyNS1mNDQ5MDdlY2FkZGYiLCJuYmYiOjE1OTA0NjQyNjEsInN1YiI6InRlc3QzMTE2OTQ3MUB0ZXN0LmNvbSIsInR5cCI6ImFjdGl2YXRpb24ifQ.poBYDyg-3zIiULtwUthsbUzpYzsJr-I3jtXZwMrJr9QKhc9ZaNXkKw9KyqWeczYxAdGZYQ37QX10xHbA1JYr5Q'
+curl --location --request POST 'http://localhost:6000/user/test1@test.com/activate' \
+--header 'Authorization: Bearer <TOKEN FROM MAIL LINK>'
 ```
 
-* Create a token with email/passoword
+* Create a token with email/password
+
+```
+curl --location --request POST 'http://localhost:6000/token' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+	"email": "test1@test.com",
+	"password": "testtest"
+}'
+```
 
 * Check user token
+
+```
+curl --location --request GET 'http://localhost:6000/token' \
+--header 'Authorization: Bearer <TOKEN FROM POST /token>'
+```
 
 * For more details, check a full working with Postman example at "/tests/collection.json"
 
