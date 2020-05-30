@@ -73,7 +73,8 @@ Userme gives you a bunch of API services for basic account creation, token valid
     * 500 - server error
 
 * POST /token
-  * request json body: email, password
+  * request json body: email + password OR googleToken OR facebookToken
+    * social tokens are validated against providers and if valid will have the same effect as a valid password
   * response status
     * 200 - token created
     * 450 - invalid/inexistent email/password combination
@@ -165,3 +166,7 @@ Userme gives you a bunch of API services for basic account creation, token valid
 * https://www.getpostman.com/collections/ec55eac4574064ce15e2
 
 * Import tests/collection.json to Postman so that you can test and update the automated tests
+
+### Social logins
+
+* Need a Facebook account and a application registered (https://developers.facebook.com/docs/facebook-login/web)
