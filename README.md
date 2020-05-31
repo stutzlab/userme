@@ -4,6 +4,8 @@ Userme gives you a bunch of API services for basic account creation, token valid
 <img src="signup.png" width="700" />
 <img src="signin.png" width="700" />
 
+See a full usage example at http://github.com/stutzlab/userme-demo-ui
+
 ## Basics
 
 * A user is created with just a name, email and password
@@ -25,9 +27,9 @@ Userme gives you a bunch of API services for basic account creation, token valid
 
 ## Usage
 
-* Create a docker-compose.yml
+* Create docker-compose.yml
 
-```
+```yml
 version: '3.6'
 
 services:
@@ -72,8 +74,9 @@ secrets:
 * Run ```docker-compose up```
 
 * Create a new user
-```
-curl --location --request PUT 'http://localhost:6000/user/test1@test.com' \
+
+```sh
+curl -v --location --request PUT 'http://localhost:6000/user/test1@test.com' \
 --header 'Content-Type: application/json' \
 --data-raw '{
 	"password": "testtest",
@@ -85,15 +88,15 @@ curl --location --request PUT 'http://localhost:6000/user/test1@test.com' \
   * Open mailslurper at http://localhost:8080
   * Find last email with registration link and extract the token from URL and paste after "Bearer"
 
-````
-curl --location --request POST 'http://localhost:6000/user/test1@test.com/activate' \
+```sh
+curl -v --location --request POST 'http://localhost:6000/user/test1@test.com/activate' \
 --header 'Authorization: Bearer <TOKEN FROM MAIL LINK>'
 ```
 
 * Create a token with email/password
 
-```
-curl --location --request POST 'http://localhost:6000/token' \
+```sh
+curl -v --location --request POST 'http://localhost:6000/token' \
 --header 'Content-Type: application/json' \
 --data-raw '{
 	"email": "test1@test.com",
@@ -103,7 +106,7 @@ curl --location --request POST 'http://localhost:6000/token' \
 
 * Check user token
 
-```
+```sh
 curl --location --request GET 'http://localhost:6000/token' \
 --header 'Authorization: Bearer <TOKEN FROM POST /token>'
 ```
@@ -160,7 +163,8 @@ curl --location --request GET 'http://localhost:6000/token' \
     * 500 - server error
 
 * POST /token
-  * request json body: email, password
+  * request json body: email + password OR googleToken OR facebookToken
+    * social tokens are validated against providers and if valid will have the same effect as a valid password
   * response status
     * 200 - token created
     * 450 - invalid/inexistent email/password combination
@@ -252,3 +256,7 @@ curl --location --request GET 'http://localhost:6000/token' \
 * https://www.getpostman.com/collections/ec55eac4574064ce15e2
 
 * Import tests/collection.json to Postman so that you can test and update the automated tests
+
+### Social logins
+
+* Need a Facebook account and a application registered (https://developers.facebook.com/docs/facebook-login/web)

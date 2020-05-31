@@ -21,8 +21,8 @@ func (h *HTTPServer) setupUserHandlers() {
 
 func createUser() func(*gin.Context) {
 	return func(c *gin.Context) {
-		pmethod := "PUT"
-		ppath := "/user/:email"
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
 
 		email := strings.ToLower(c.Param("email"))
 		logrus.Debugf("createUser email=%s", email)
@@ -152,8 +152,8 @@ func createUser() func(*gin.Context) {
 func activateUser() func(*gin.Context) {
 	// * response body json: name, jwtAccessToken, jwtRefreshToken, accessTokenExpirationDate, refreshTokenExpirationDate
 	return func(c *gin.Context) {
-		pmethod := "POST"
-		ppath := "/user/:email/activate"
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
 
 		email := strings.ToLower(c.Param("email"))
 		logrus.Debugf("activateUser email=%s", email)

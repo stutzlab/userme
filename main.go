@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	utils "github.com/flaviostutz/go-utils"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 )
@@ -183,14 +184,14 @@ func main() {
 
 	logrus.Debugf("JWT signing method: %s", opt.jwtSigningMethod)
 	if strings.HasPrefix(opt.jwtSigningMethod, "RS") || strings.HasPrefix(opt.jwtSigningMethod, "ES") || strings.HasPrefix(opt.jwtSigningMethod, "HS") {
-		privk, err := parseKeyFromPEM(opt.jwtSigningKeyFile, true)
+		privk, err := utils.ParseKeyFromPEM(opt.jwtSigningKeyFile, true)
 		if err != nil {
 			logrus.Errorf("Failed to parse PEM private key. err=%s", err)
 			os.Exit(1)
 		}
 		opt.jwtPrivateKey = privk
 
-		pubk, err := parseKeyFromPEM(opt.jwtSigningKeyFile, false)
+		pubk, err := utils.ParseKeyFromPEM(opt.jwtSigningKeyFile, false)
 		if err != nil {
 			logrus.Errorf("Failed to parse PEM public key. err=%s", err)
 			os.Exit(1)
