@@ -10,8 +10,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
-	// uuid "github.com/satori/go.uuid"
-
 	cors "github.com/itsjamie/gin-cors"
 )
 

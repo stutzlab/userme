@@ -4,7 +4,7 @@ services:
 
   userme:
     build: .
-    image: flaviostutz/userme
+    image: stutzlab/userme
     environment:
       - LOG_LEVEL=debug
       - DB_DIALECT=sqlite3

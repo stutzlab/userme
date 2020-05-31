@@ -4,7 +4,7 @@ services:
 
   userme:
     build: .
-    image: flaviostutz/simple-file-server
+    image: stutzlab/userme
     ports:
       - "6000:6000"
     restart: always
@@ -64,7 +64,7 @@ services:
 
 secrets:
   jwt-signing-key:
-    file: ./test-jwt-key.pem
+    file: ./tests/test-key.pem
 
 volumes:
   mysql-data:
