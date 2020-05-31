@@ -25,6 +25,107 @@ See a full usage example at http://github.com/stutzlab/userme-demo-ui
   * The password must be still valid (not expired)
 * In future we may add TOTP capabilities too. Please contribute on that!
 
+## Usage
+
+* Create docker-compose.yml
+
+```yml
+version: '3.6'
+
+services:
+
+  userme:
+    image: stutzlab/userme
+    ports:
+      - "6000:6000"
+    restart: always
+    environment:
+      - LOG_LEVEL=debug
+      - DB_DIALECT=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=userme
+      - DB_PASSWORD=userme
+      - DB_NAME=userme
+      - MAIL_SMTP_HOST=smtp.mailtrap.io
+      - MAIL_SMTP_PORT=2525
+      - MAIL_SMTP_USER=d999da469e2965
+      - MAIL_SMTP_PASS=
+      - MAIL_FROM_NAME=Berimbal
+      - MAIL_FROM_ADDRESS=e7a3b40037-7cbde1@inbox.mailtrap.io
+      - MAIL_ACTIVATION_SUBJECT=Activate your account at Berimbau.com!
+      - MAIL_ACTIVATION_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/activate?t=ACTIVATION_TOKEN>Click here to complete your registration</a><br>Be welcome!</p> <p>-Test Team.</p>
+      - MAIL_PASSWORD_RESET_SUBJECT=Password reset requested at Berimbau.com
+      - MAIL_PASSWORD_RESET_HTML=<b>Hi DISPLAY_NAME</b>, <p> <a href=https://test.com/reset-password?t=PASSWORD_RESET_TOKEN>Click here to reset your password</a></p><p>-Test Team.</p>
+      - MAIL_TOKENS_FOR_TESTS=true
+      - ACCOUNT_ACTIVATION_METHOD=mail
+      # - CORS_ALLOWED_ORIGINS             '*'
+      # - ACCESS_TOKEN_EXPIRATION_MINUTES  '480'
+      # - REFRESH_TOKEN_EXPIRATION_MINUTES '40320'
+      #- VALIDATION_TOKEN_EXPIRATION_MINUTES=10
+      # - ACCESS_TOKEN_DEFAULT_SCOPE       'basic'
+      # - MAX_INCORRECT_PASSWORD_RETRIES   '5'
+      # - PASSWORD_VALIDATION_REGEX         ^.{6,30}$
+      # - PASSWORD_EXPIRATION_DAYS=1
+      - JWT_SIGNING_METHOD=ES256
+      # - JWT_SIGNING_KEY_FILE=/run/secrets/jwt-private-key
+      # - MASTER_PUBLIC_KEY_FILE            '/secrests/master-public-key'
+    secrets:
+      - jwt-signing-key
+
+  mysql:
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=userme
+      - MYSQL_USER=userme
+      - MYSQL_PASSWORD=userme
+      - MYSQL_DATABASE=userme
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+secrets:
+  jwt-signing-key:
+    file: ./tests/test-key.pem
+
+volumes:
+  mysql-data:
+
+```
+
+* Run docker-compose up -d
+
+* Create a new user, validate it and generate JWT tokens
+
+```bash
+
+echo "Create new account"
+curl -v --location --request PUT 'http://localhost:6000/user/test1@test.com' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+	"password": "testtest",
+	"name": "test1 guy"
+}'
+
+
+echo "Activate new account"
+curl -v --location --request POST 'http://localhost:6000/user/test1@test.com/activate' \
+--header 'Authorization: Bearer <ACTIVATION TOKEN FROM PREVIOUS CALL HEADER>'
+
+
+echo "Get token from user/password"
+curl -v --location --request POST 'http://localhost:6000/token' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+	"email": "test1@test.com",
+	"password": "testtest"
+}'
+
+```
+
+
 ## Rest API
 
 * PUT /user/:email
