@@ -54,7 +54,7 @@ COPY --from=BUILD /go/bin/userme /bin/
 
 ADD startup.sh /
 
-EXPOSE 6000
+EXPOSE 7000
 
 VOLUME [ "/data" ]
 

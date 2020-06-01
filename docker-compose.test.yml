@@ -27,10 +27,10 @@ services:
   sut:
     build: tests/.
     environment:
-      - USERME_HOST=http://userme:6000
+      - USERME_HOST=http://userme:7000
       - WAIT_TIME_SECONDS=5
       - WAIT_CONNECT_HOST=userme
-      - WAIT_CONNECT_PORT=6000
+      - WAIT_CONNECT_PORT=7000
     depends_on:
       - userme
 

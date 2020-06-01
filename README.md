@@ -37,7 +37,7 @@ services:
   userme:
     image: stutzlab/userme
     ports:
-      - "6000:6000"
+      - "7000:7000"
     restart: always
     environment:
       - LOG_LEVEL=debug
@@ -76,7 +76,7 @@ secrets:
 * Create a new user
 
 ```sh
-curl -v --location --request PUT 'http://localhost:6000/user/test1@test.com' \
+curl -v --location --request PUT 'http://localhost:7000/user/test1@test.com' \
 --header 'Content-Type: application/json' \
 --data-raw '{
 	"password": "testtest",
@@ -89,14 +89,14 @@ curl -v --location --request PUT 'http://localhost:6000/user/test1@test.com' \
   * Find last email with registration link and extract the token from URL and paste after "Bearer"
 
 ```sh
-curl -v --location --request POST 'http://localhost:6000/user/test1@test.com/activate' \
+curl -v --location --request POST 'http://localhost:7000/user/test1@test.com/activate' \
 --header 'Authorization: Bearer <TOKEN FROM MAIL LINK>'
 ```
 
 * Create a token with email/password
 
 ```sh
-curl -v --location --request POST 'http://localhost:6000/token' \
+curl -v --location --request POST 'http://localhost:7000/token' \
 --header 'Content-Type: application/json' \
 --data-raw '{
 	"email": "test1@test.com",
@@ -107,7 +107,7 @@ curl -v --location --request POST 'http://localhost:6000/token' \
 * Check user token
 
 ```sh
-curl --location --request GET 'http://localhost:6000/token' \
+curl --location --request GET 'http://localhost:7000/token' \
 --header 'Authorization: Bearer <TOKEN FROM POST /token>'
 ```
 

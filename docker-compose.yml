@@ -6,7 +6,7 @@ services:
     build: .
     image: stutzlab/userme
     ports:
-      - "6000:6000"
+      - "7000:7000"
     restart: always
     environment:
       - LOG_LEVEL=debug
