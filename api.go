@@ -42,7 +42,7 @@ func NewHTTPServer() *HTTPServer {
 	router.Use(cors.Middleware(cors.Config{
 		Origins:         opt.corsAllowedOrigins,
 		Methods:         "GET, POST",
-		RequestHeaders:  "Origin, Content-Type",
+		RequestHeaders:  "Authorization, Origin, Content-Type, Referer, User-Agent",
 		ExposedHeaders:  "",
 		MaxAge:          24 * 3600 * time.Second,
 		Credentials:     false,
