@@ -212,7 +212,7 @@ func tokenInfo() func(*gin.Context) {
 		pmethod := c.Request.Method
 		ppath := c.FullPath()
 
-		claims, err := loadAndValidateToken(c.Request, "access", "")
+		claims, err := loadAndValidateToken(c.Request, "", "")
 		if err != nil {
 			c.JSON(450, gin.H{"message": "Invalid access token"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()

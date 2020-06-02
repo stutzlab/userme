@@ -121,7 +121,7 @@ func loadAndValidateToken(req *http.Request, tokenType string, email string) (jw
 		return nil, err
 	}
 
-	if !claimEquals(claims, "typ", tokenType) {
+	if tokenType != "" && !claimEquals(claims, "typ", tokenType) {
 		return nil, fmt.Errorf("Token type is not %s for %s", tokenType, email)
 	}
 
