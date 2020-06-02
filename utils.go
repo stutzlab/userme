@@ -21,7 +21,7 @@ func sendMail(subject string, htmlBody string, mailTo string, mailToName string)
 		htmlBody = fmt.Sprintf("<html>%s</html>", htmlBody)
 	}
 
-	m := gomail.NewMessage()
+	m := gomail.NewMessage(gomail.SetEncoding("8bit"))
 	m.SetAddressHeader("From", opt.mailFromAddress, opt.mailFromName)
 	m.SetAddressHeader("To", mailTo, mailToName)
 	m.SetHeader("Subject", subject)
