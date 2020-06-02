@@ -191,6 +191,7 @@ curl --location --request GET 'http://localhost:7000/token' \
     * 200 - token/user valid
     * 450 - token invalid
     * 455 - account disabled
+    * 460 - account not activated (applied to access/refresh token)
     * 500 - server error
   * response body json: name, email, expirationDate, claims[]
 

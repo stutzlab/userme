@@ -214,24 +214,40 @@ func tokenInfo() func(*gin.Context) {
 
 		claims, err := loadAndValidateToken(c.Request, "", "")
 		if err != nil {
-			c.JSON(450, gin.H{"message": "Invalid access token"})
+			logrus.Debugf("Invalid token. err=%s", err)
+			c.JSON(450, gin.H{"message": "Invalid token"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
 			return
 		}
 
 		email, exists := claims["sub"]
 		if !exists {
-			c.JSON(450, gin.H{"message": "Invalid access token"})
+			logrus.Debugf("Invalid token. 'sub' claim not found")
+			c.JSON(450, gin.H{"message": "Invalid token"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
 			return
 		}
 
 		var u User
-		db1 := db.First(&u, "email = ? AND activation_date IS NOT NULL AND enabled = 1", email)
+		db1 := db.First(&u, "email = ? AND enabled = 1", email)
 
 		if db1.RecordNotFound() {
 			c.JSON(455, gin.H{"message": "User not enabled"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "455").Inc()
+			return
+
+		}
+
+		typ, exists1 := claims["typ"]
+		if !exists1 {
+			logrus.Debugf("Invalid token. 'typ' claim not found")
+			c.JSON(450, gin.H{"message": "Invalid token"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+			return
+		}
+		if (typ == "access" || typ == "refresh") && u.ActivationDate == nil {
+			c.JSON(460, gin.H{"message": "Account not activated"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "460").Inc()
 			return
 		}
 
