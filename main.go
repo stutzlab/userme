@@ -90,9 +90,9 @@ func main() {
 	mailSMTPPass0 := flag.String("mail-smtp-password", "", "Mail smtp password")
 	mailFromAddress0 := flag.String("mail-from-address", "", "Mail from address")
 	mailActivationSubject0 := flag.String("mail-activation-subject", "", "Mail activation subject")
-	mailActivationHTML0 := flag.String("mail-activation-html", "", "Mail activation html body. Use placeholders DISPLAY_NAME and ACTIVATION_TOKEN as templating")
+	mailActivationHTML0 := flag.String("mail-activation-html", "", "Mail activation html body. Use placeholders EMAIL, DISPLAY_NAME and ACTIVATION_TOKEN as templating")
 	mailResetPasswordSubject0 := flag.String("mail-password-reset-subject", "", "Mail password reset subject")
-	mailResetPasswordHTML0 := flag.String("mail-password-reset-html", "", "Mail password reset html body. Use placeholders DISPLAY_NAME and ACTIVATION_TOKEN as templating")
+	mailResetPasswordHTML0 := flag.String("mail-password-reset-html", "", "Mail password reset html body. Use placeholders EMAIL, DISPLAY_NAME and ACTIVATION_TOKEN as templating")
 	mailTokensTests0 := flag.String("mail-tokens-tests", "", "Send mail tokens to response headers. Useful for testing enviroments. NEVER use this in production as this makes second factor (e-mail) invalid for our application.")
 
 	flag.Parse()

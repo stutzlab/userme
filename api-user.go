@@ -126,7 +126,8 @@ func createUser() func(*gin.Context) {
 		}
 
 		logrus.Debugf("Sending activation mail to %s", email)
-		htmlBody := strings.ReplaceAll(opt.mailActivationHTMLBody, "DISPLAY_NAME", u0.Name)
+		htmlBody := strings.ReplaceAll(opt.mailActivationHTMLBody, "EMAIL", u0.Email)
+		htmlBody = strings.ReplaceAll(htmlBody, "DISPLAY_NAME", u0.Name)
 		htmlBody = strings.ReplaceAll(htmlBody, "ACTIVATION_TOKEN", activationTokenString)
 		err = sendMail(opt.mailActivationSubject, htmlBody, email, u0.Name)
 		if err != nil {

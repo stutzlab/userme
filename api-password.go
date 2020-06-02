@@ -54,6 +54,7 @@ func passwordResetRequest() func(*gin.Context) {
 		}
 
 		htmlBody := strings.ReplaceAll(opt.mailResetPasswordHTMLBody, "DISPLAY_NAME", u.Name)
+		htmlBody = strings.ReplaceAll(htmlBody, "EMAIL", u.Email)
 		htmlBody = strings.ReplaceAll(htmlBody, "PASSWORD_RESET_TOKEN", passwordResetTokenString)
 		err = sendMail(opt.mailResetPasswordSubject, htmlBody, email, u.Name)
 		if err != nil {
