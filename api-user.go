@@ -40,7 +40,7 @@ func createUser() func(*gin.Context) {
 		//VALIDATE INPUTS
 		valid := validateField(m, "email", "^(([^<>()\\[\\]\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\.,;:\\s@\"]+)*)|(\".+\"))@(([^<>()[\\]\\.,;:\\s@\"]+\\.)+[^<>()[\\]\\.,;:\\s@\"]{2,})$")
 		if !valid {
-			c.JSON(450, gin.H{"message": "Invalid email"})
+			c.JSON(455, gin.H{"message": "Invalid email"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "455").Inc()
 			return
 		}
