@@ -45,7 +45,7 @@ func passwordResetRequest() func(*gin.Context) {
 			return
 		}
 
-		_, passwordResetTokenString, err := createJWTToken(email, opt.passwordResetTokenExpirationMinutes, "password-reset", "")
+		_, passwordResetTokenString, err := createJWTToken(email, opt.passwordResetTokenExpirationMinutes, "password-reset", "password", nil)
 		if err != nil {
 			logrus.Warnf("Error creating password reset token for email=%s. err=%s", email, err)
 			c.JSON(500, gin.H{"message": "Server error"})

@@ -35,20 +35,23 @@ func sendMail(subject string, htmlBody string, mailTo string, mailToName string)
 	return d.DialAndSend(m)
 }
 
-func createJWTToken(email string, expirationMinutes int, typ string, scopes string) (jwt.MapClaims, string, error) {
+func createJWTToken(email string, expirationMinutes int, typ string, authType string, customClaims jwt.MapClaims) (jwt.MapClaims, string, error) {
 	sm := jwt.GetSigningMethod(opt.jwtSigningMethod)
 	jti := uuid.New()
 	claims := jwt.MapClaims{
-		"iss": opt.jwtIssuer,
-		"sub": email,
-		"exp": time.Now().Unix() + int64(60*expirationMinutes),
-		"iat": time.Now().Unix(),
-		"nbf": time.Now().Unix(),
-		"jti": jti.String(),
-		"typ": typ,
+		"iss":      opt.jwtIssuer,
+		"sub":      email,
+		"exp":      time.Now().Unix() + int64(60*expirationMinutes),
+		"iat":      time.Now().Unix(),
+		"nbf":      time.Now().Unix(),
+		"jti":      jti.String(),
+		"typ":      typ,
+		"authType": authType,
 	}
-	if len(scopes) > 0 {
-		claims["scope"] = scopes
+	if customClaims != nil {
+		for k, v := range customClaims {
+			claims[k] = v
+		}
 	}
 	token := jwt.NewWithClaims(sm, claims)
 	tokenString, err := token.SignedString(opt.jwtPrivateKey)
@@ -82,13 +85,13 @@ func claimEquals(claims jwt.MapClaims, claimName string, value string) bool {
 	return v == value
 }
 
-func createAccessAndRefreshToken(name string, email string, accessTokenScopes string) (gin.H, error) {
-	accessToken, accessTokenStr, err := createJWTToken(email, opt.accessTokenDefaultExpirationMinutes, "access", accessTokenScopes)
+func createAccessAndRefreshToken(name string, email string, authType string, accessTokenClaims jwt.MapClaims, refreshTokenClaims jwt.MapClaims) (gin.H, error) {
+	accessToken, accessTokenStr, err := createJWTToken(email, opt.accessTokenDefaultExpirationMinutes, "access", authType, accessTokenClaims)
 	if err != nil {
 		return nil, fmt.Errorf("accessToken err=%s", err)
 	}
 
-	refreshToken, refreshTokenStr, err := createJWTToken(email, opt.refreshTokenDefaultExpirationMinutes, "refresh", "")
+	refreshToken, refreshTokenStr, err := createJWTToken(email, opt.refreshTokenDefaultExpirationMinutes, "refresh", authType, refreshTokenClaims)
 	if err != nil {
 		return nil, fmt.Errorf("refreshToken err=%s", err)
 	}

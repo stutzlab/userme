@@ -3,13 +3,17 @@ FROM golang:1.14.3-alpine3.11 AS BUILD
 RUN apk add build-base
 
 WORKDIR /userme
+
+#go cache
 ADD /go.mod /userme
 ADD /go.sum /userme
 RUN go mod download
+#force sqlite build because it is sloooow
+RUN go install github.com/mattn/go-sqlite3
 
 #now build source code
 ADD / /userme
-RUN go build -o /go/bin/userme
+RUN CGO_ENABLED=1 go build -i -x -o /go/bin/userme
 
 
 FROM golang:1.14.3-alpine3.11

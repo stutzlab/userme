@@ -117,7 +117,7 @@ func createUser() func(*gin.Context) {
 		}
 
 		//SEND ACTIVATION TOKEN TO USER EMAIL
-		_, activationTokenString, err := createJWTToken(email, opt.validationTokenExpirationMinutes, "activation", "")
+		_, activationTokenString, err := createJWTToken(email, opt.validationTokenExpirationMinutes, "activation", "password", nil)
 		if err != nil {
 			logrus.Warnf("Error creating activation token for email=%s. err=%s", email, err)
 			c.JSON(500, gin.H{"message": "Server error"})
@@ -202,7 +202,9 @@ func activateUser() func(*gin.Context) {
 		}
 
 		//ACCOUNT ACTIVATED. CREATE ACCESS TOKENS FOR DIRECT SIGNIN
-		tokensResponse, err := createAccessAndRefreshToken(u.Name, email, opt.accessTokenDefaultScope)
+		defaultAccessClaims := make(map[string]interface{})
+		defaultAccessClaims["scope"] = strings.Split(opt.accessTokenDefaultScope, ",")
+		tokensResponse, err := createAccessAndRefreshToken(u.Name, email, "password", defaultAccessClaims, nil)
 		if err != nil {
 			logrus.Warnf("Error generating tokens for user %s. err=%s", email, err)
 			c.JSON(500, gin.H{"message": "Server error"})

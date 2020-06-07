@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -52,32 +54,77 @@ func tokenCreate() func(*gin.Context) {
 func processFacebookLogin(m map[string]string, facebookToken string, c *gin.Context, pmethod string, ppath string) {
 	logrus.Debugf("Authentication using Facebook login")
 
-}
+	// email, exists := m["email"]
+	// if !exists {
+	// 	c.JSON(400, gin.H{"message": "Couldn't get email from body contents"})
+	// 	invocationCounter.WithLabelValues(pmethod, ppath, "400").Inc()
+	// 	return
+	// }
 
-func processLocalPasswordLogin(m map[string]string, c *gin.Context, pmethod string, ppath string) {
-	logrus.Debugf("Authentication using local password")
-	email, exists := m["email"]
+	logrus.Debugf("Checking facebook token validity")
+	token, success := processFacebookToken(c, facebookToken, pmethod, ppath)
+	if !success {
+		return
+	}
+	logrus.Debugf("Facebook token valid for %s. Checking if account already exists")
+
+	tname0, exists := token["name"]
 	if !exists {
-		c.JSON(400, gin.H{"message": "Couldn't get email/password from body contents"})
+		c.JSON(400, gin.H{"message": "Couldn't get 'name' from Facebook token"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "400").Inc()
+		return
+	}
+	tname := tname0
+
+	temail, exists := token["email"]
+	if !exists {
+		c.JSON(400, gin.H{"message": fmt.Sprintf("Couldn't get email from Facebook token for user %s", tname)})
 		invocationCounter.WithLabelValues(pmethod, ppath, "400").Inc()
 		return
 	}
 
-	var u User
-	db1 := db.First(&u, "email = ? AND activation_date IS NOT NULL", email)
+	u := User{}
+	if db.First(&u, "email = ?", temail).RecordNotFound() {
+		logrus.Debugf("User %s not found. Auto creating user for Facebook login", temail)
+		t := time.Now()
+		u.ActivationDate = &t
+		u = User{
+			Name:           tname,
+			Email:          temail,
+			Enabled:        1,
+			CreationDate:   time.Now(),
+			ActivationDate: &t,
+		}
+		err := db.Create(&u).Error
+		if err != nil {
+			logrus.Warnf("Error creating user email=%s for Facebook login. err=%s", temail, err)
+			c.JSON(500, gin.H{"message": "Server error"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+			return
+		}
+		logrus.Debugf("New account created from Facebook login. email=%s", temail)
 
-	if db1.RecordNotFound() {
-		c.JSON(450, gin.H{"message": "Email/password not valid"})
-		invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+	}
+
+	m["email"] = temail
+
+	_, success = processUserActivated(m, c, pmethod, ppath)
+	if !success {
 		return
 	}
 
-	if db1.Error != nil {
-		logrus.Warnf("Error authenticating user %s. err=%s", email, db1.Error)
-		c.JSON(500, gin.H{"message": "Server error"})
-		invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+	validateUserAndOutputTokensToResponse(&u, c, pmethod, ppath, "facebook", facebookToken)
+	logrus.Debugf("Facebook login for %s", u.Email)
+}
+
+func processLocalPasswordLogin(m map[string]string, c *gin.Context, pmethod string, ppath string) {
+	logrus.Debugf("Authentication using local password")
+
+	u, success := processUserActivated(m, c, pmethod, ppath)
+	if !success {
 		return
 	}
+	email := u.Email
 
 	password, exists := m["password"]
 	if !exists {
@@ -122,7 +169,7 @@ func processLocalPasswordLogin(m map[string]string, c *gin.Context, pmethod stri
 	}
 
 	logrus.Debugf("Reset wrong password counters")
-	err = resetWrongPasswordCounters(&u)
+	err = resetWrongPasswordCounters(u)
 	if err != nil {
 		logrus.Warnf("Couldn't zero wrong password count for %s. err=%s", email, err)
 		c.JSON(500, gin.H{"message": "Server error"})
@@ -130,27 +177,65 @@ func processLocalPasswordLogin(m map[string]string, c *gin.Context, pmethod stri
 		return
 	}
 
-	validateUserAndOutputTokensToResponse(&u, c, pmethod, ppath)
+	validateUserAndOutputTokensToResponse(u, c, pmethod, ppath, "password", "")
 	logrus.Debugf("Local password login for %s", email)
 }
 
-func validateUserAndOutputTokensToResponse(u *User, c *gin.Context, pmethod string, ppath string) {
+func processUserActivated(m map[string]string, c *gin.Context, pmethod string, ppath string) (*User, bool) {
+	email, exists := m["email"]
+	if !exists {
+		c.JSON(400, gin.H{"message": "Couldn't get email/password from body contents"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "400").Inc()
+		return nil, false
+	}
+
+	var u User
+	db1 := db.First(&u, "email = ? AND activation_date IS NOT NULL", email)
+
+	if db1.RecordNotFound() {
+		c.JSON(450, gin.H{"message": "Email/password not valid"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+		return nil, false
+	}
+
+	if db1.Error != nil {
+		logrus.Warnf("Error authenticating user %s. err=%s", email, db1.Error)
+		c.JSON(500, gin.H{"message": "Server error"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+		return nil, false
+	}
+
+	return &u, true
+}
+
+func validateUserAndOutputTokensToResponse(u *User, c *gin.Context, pmethod string, ppath string, authType string, socialToken string) {
 	if u.Enabled == 0 {
 		c.JSON(460, gin.H{"message": "Account disabled"})
 		invocationCounter.WithLabelValues(pmethod, ppath, "460").Inc()
 		return
 	}
 
-	if u.PasswordValidUntil != nil {
-		if u.PasswordValidUntil.Before(time.Now()) {
-			c.JSON(455, gin.H{"message": "Password expired"})
-			invocationCounter.WithLabelValues(pmethod, ppath, "455").Inc()
-			return
+	customAccessTokenClaims := make(map[string]interface{})
+	customAccessTokenClaims["scope"] = strings.Split(opt.accessTokenDefaultScope, ",")
+
+	customRefreshTokenClaims := make(map[string]interface{})
+
+	if authType == "password" {
+		if u.PasswordValidUntil != nil {
+			if u.PasswordValidUntil.Before(time.Now()) {
+				c.JSON(455, gin.H{"message": "Password expired"})
+				invocationCounter.WithLabelValues(pmethod, ppath, "455").Inc()
+				return
+			}
 		}
+
+	} else if authType == "facebook" {
+		customRefreshTokenClaims["facebookToken"] = socialToken
 	}
 
 	logrus.Debugf("User %s authenticated and validated", u.Email)
-	tokensResponse, err := createAccessAndRefreshToken(u.Name, u.Email, opt.accessTokenDefaultScope)
+
+	tokensResponse, err := createAccessAndRefreshToken(u.Name, u.Email, authType, customAccessTokenClaims, customRefreshTokenClaims)
 	if err != nil {
 		logrus.Warnf("Error generating tokens for user %s. err=%s", u.Email, err)
 		c.JSON(500, gin.H{"message": "Server error"})
@@ -161,6 +246,51 @@ func validateUserAndOutputTokensToResponse(u *User, c *gin.Context, pmethod stri
 	c.JSON(200, tokensResponse)
 	invocationCounter.WithLabelValues(pmethod, ppath, "200").Inc()
 	logrus.Debugf("Tokens for %s generated and sent to response", u.Name)
+}
+
+func processFacebookToken(c *gin.Context, facebookToken string, pmethod string, ppath string) (map[string]string, bool) {
+	logrus.Debugf("FB token=%s", facebookToken)
+	furl := fmt.Sprintf("https://graph.facebook.com/me?fields=email,name&access_token=%s", facebookToken)
+	response, err := http.Get(furl)
+	if err != nil {
+		logrus.Warnf("Error calling Facebook to validate token. %s", err)
+		c.JSON(500, gin.H{"message": "Error calling Facebook to validate token"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+		return nil, false
+	}
+	if response.StatusCode != 200 {
+		logrus.Warnf("Facebook didn't validate token. status=%s", response.Status)
+		rb, _ := ioutil.ReadAll(response.Body)
+		logrus.Debugf("FB: %s", string(rb))
+		c.JSON(400, gin.H{"message": "Token could not be validated at Facebook"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "400").Inc()
+		return nil, false
+	}
+
+	token := make(map[string]string)
+	data, _ := ioutil.ReadAll(response.Body)
+	err2 := json.Unmarshal(data, &token)
+	if err2 != nil {
+		c.JSON(500, gin.H{"message": "Token could not be read from Facebook"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+		return nil, false
+	}
+
+	//FB bug: https://stackoverflow.com/questions/13510458/golang-convert-iso8859-1-to-utf8
+	// token["name"] = toUtf8(token["name"])
+	token["email"] = toUtf8(token["email"])
+	logrus.Debugf("FB token=%v", token)
+
+	return token, true
+}
+
+func toUtf8(iso88591str string) string {
+	iso88591buf := []byte(iso88591str)
+	buf := make([]rune, len(iso88591buf))
+	for i, b := range iso88591buf {
+		buf[i] = rune(b)
+	}
+	return string(buf)
 }
 
 //TOKEN REFRESH
@@ -176,13 +306,23 @@ func tokenRefresh() func(*gin.Context) {
 			return
 		}
 
-		email, exists := claims["sub"]
+		email0, exists := claims["sub"]
 		if !exists {
 			logrus.Warnf("Refresh token valid but doesn't have 'sub' claim")
 			c.JSON(450, gin.H{"message": "Invalid refresh token"})
 			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
 			return
 		}
+		email := email0.(string)
+
+		authType0, exists := claims["authType"]
+		if !exists {
+			logrus.Warnf("Refresh token valid but doesn't have 'authType' claim")
+			c.JSON(450, gin.H{"message": "Invalid refresh token"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+			return
+		}
+		authType := authType0.(string)
 
 		logrus.Debugf("Refresh token validated for %s. Verifying user account", email)
 
@@ -201,7 +341,48 @@ func tokenRefresh() func(*gin.Context) {
 			return
 		}
 
-		validateUserAndOutputTokensToResponse(&u, c, pmethod, ppath)
+		socialToken := ""
+
+		if authType == "facebook" {
+			facebookToken0, exists := claims["facebookToken"]
+			if !exists {
+				logrus.Warnf("Refresh token valid but doesn't have 'facebookToken' claim")
+				c.JSON(450, gin.H{"message": "Invalid refresh token"})
+				invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+				return
+			}
+			facebookToken := facebookToken0.(string)
+
+			token, ok := processFacebookToken(c, facebookToken, pmethod, ppath)
+			if !ok {
+				return
+			}
+			logrus.Debugf("FB TOKEN=%v", token)
+
+			temail, _ := token["email"]
+			if email != temail {
+				logrus.Warnf("Refresh token valid but 'facebookToken' is for another email. %s!=%s", temail, email)
+				c.JSON(450, gin.H{"message": "Invalid refresh token"})
+				invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+				return
+			}
+
+			socialToken = facebookToken
+		}
+
+		// if authType == "google" {
+		// 	googleToken0, exists := claims["googleToken"]
+		// 	if !exists {
+		// 		logrus.Warnf("Refresh token valid but doesn't have 'googleToken' claim")
+		// 		c.JSON(450, gin.H{"message": "Invalid refresh token"})
+		// 		invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+		// 		return
+		// 	}
+		// 	googleToken := googleToken0.(string)
+		// 	socialToken = googleToken
+		// }
+
+		validateUserAndOutputTokensToResponse(&u, c, pmethod, ppath, authType, socialToken)
 		logrus.Debugf("Token refresh for %s", email)
 	}
 }
