@@ -47,6 +47,8 @@ services:
       # - MASTER_PUBLIC_KEY_FILE            '/secrests/master-public-key'
       - FACEBOOK_CLIENT_ID=884133135440365
       - FACEBOOK_CLIENT_SECRET=
+      - GOOGLE_CLIENT_ID=339086941381-61h3t55u99n9rt0arqmu655cvs3gk3ol.apps.googleusercontent.com
+      - GOOGLE_CLIENT_SECRET=
     secrets:
       - jwt-signing-key
 

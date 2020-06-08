@@ -44,6 +44,8 @@ ENV JWT_SIGNING_KEY_FILE                '/run/secrets/jwt-signing-key'
 ENV MASTER_PUBLIC_KEY_FILE              '/run/secrests/master-public-key'
 ENV FACEBOOK_CLIENT_ID                  ''
 ENV FACEBOOK_CLIENT_SECRET              ''
+ENV GOOGLE_CLIENT_ID                    ''
+ENV GOOGLE_CLIENT_SECRET                ''
 
 ENV DB_DIALECT  'mysql'
 ENV DB_HOST     ''
