@@ -8,20 +8,29 @@ WORKDIR /userme
 ADD /go.mod /userme
 ADD /go.sum /userme
 RUN go mod download
-#force sqlite build because it is sloooow
-RUN go install github.com/mattn/go-sqlite3
+#cache sqlite build because it is sloooow
+RUN go install github.com/mattn/go-sqlite3 \
+	github.com/dgrijalva/jwt-go  \
+	github.com/flaviostutz/go-utils  \
+	github.com/gin-gonic/gin  \
+	github.com/go-gomail/gomail  \
+	github.com/google/uuid  \
+	github.com/itsjamie/gin-cors  \
+	github.com/jinzhu/gorm  \
+	github.com/sirupsen/logrus  \
+	gopkg.in/alexcesaro/quotedprintable.v3
 
 #now build source code
 ADD / /userme
-RUN CGO_ENABLED=1 go build -i -x -o /go/bin/userme
+RUN go build -x -o /go/bin/userme
 
 
 FROM golang:1.14.3-alpine3.11
 
 ENV LOG_LEVEL                           'info'
 ENV CORS_ALLOWED_ORIGINS                '*'
-ENV ACCESS_TOKEN_EXPIRATION_MINUTES     '480'
-ENV REFRESH_TOKEN_EXPIRATION_MINUTES    '40320'
+ENV ACCESS_TOKEN_EXPIRATION_MINUTES     '30'
+ENV REFRESH_TOKEN_EXPIRATION_MINUTES    '86400'
 ENV VALIDATION_TOKEN_EXPIRATION_MINUTES '30'
 ENV PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES '5'
 ENV ACCESS_TOKEN_DEFAULT_SCOPE          'basic'
@@ -33,6 +42,8 @@ ENV PASSWORD_EXPIRATION_DAYS            '-1'
 ENV JWT_SIGNING_METHOD                  'ES256'
 ENV JWT_SIGNING_KEY_FILE                '/run/secrets/jwt-signing-key'
 ENV MASTER_PUBLIC_KEY_FILE              '/run/secrests/master-public-key'
+ENV FACEBOOK_CLIENT_ID                  ''
+ENV FACEBOOK_CLIENT_SECRET              ''
 
 ENV DB_DIALECT  'mysql'
 ENV DB_HOST     ''

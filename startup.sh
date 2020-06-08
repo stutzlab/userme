@@ -37,5 +37,10 @@ userme \
      --mail-activation-html="$MAIL_ACTIVATION_HTML" \
      --mail-password-reset-subject="$MAIL_PASSWORD_RESET_SUBJECT" \
      --mail-password-reset-html="$MAIL_PASSWORD_RESET_HTML" \
-     --mail-tokens-tests=$MAIL_TOKENS_FOR_TESTS
+     --mail-tokens-tests=$MAIL_TOKENS_FOR_TESTS \
+     \
+     --google-client-id=$GOOGLE_CLIENT_ID \
+     --google-client-secret=$GOOGLE_CLIENT_SECRET \
+     --facebook-client-id=$FACEBOOK_CLIENT_ID \
+     --facebook-client-secret=$FACEBOOK_CLIENT_SECRET
 

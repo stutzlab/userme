@@ -41,9 +41,9 @@ func tokenCreate() func(*gin.Context) {
 			return
 		}
 
-		_, exists = m["googleToken"]
+		googleToken, exists := m["googleToken"]
 		if exists {
-			// processGoogleLogin(m, c, pmethod, ppath)
+			processGoogleLogin(m, googleToken, c, pmethod, ppath)
 			return
 		}
 
@@ -51,15 +51,62 @@ func tokenCreate() func(*gin.Context) {
 	}
 }
 
-func processFacebookLogin(m map[string]string, facebookToken string, c *gin.Context, pmethod string, ppath string) {
+func processGoogleLogin(m map[string]string, googleToken string, c *gin.Context, pmethod string, ppath string) {
+	logrus.Debugf("Authentication using Google login")
+
+	if opt.googleClientID == "" || opt.googleClientSecret == "" {
+		c.JSON(400, gin.H{"message": "Google login disabled"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "400").Inc()
+		return
+	}
+	logrus.Errorf("Google login not implemented yet")
+	return
+}
+
+func processFacebookLogin(m map[string]string, shortLivedFacebookToken string, c *gin.Context, pmethod string, ppath string) {
 	logrus.Debugf("Authentication using Facebook login")
 
-	// email, exists := m["email"]
-	// if !exists {
-	// 	c.JSON(400, gin.H{"message": "Couldn't get email from body contents"})
-	// 	invocationCounter.WithLabelValues(pmethod, ppath, "400").Inc()
-	// 	return
-	// }
+	if opt.facebookClientID == "" || opt.facebookClientSecret == "" {
+		c.JSON(400, gin.H{"message": "Facebook login disabled"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "400").Inc()
+		return
+	}
+
+	logrus.Debugf("Exchanging short lived FB token by a long lived one")
+	furl := fmt.Sprintf("https://graph.facebook.com/v7.0/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s", opt.facebookClientID, opt.facebookClientSecret, shortLivedFacebookToken)
+	response, err := http.Get(furl)
+	if err != nil {
+		logrus.Warnf("Error calling Facebook to get a long lived token. %s", err)
+		c.JSON(500, gin.H{"message": "Error calling Facebook API"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+		return
+	}
+	if response.StatusCode != 200 {
+		logrus.Warnf("Couldn't get long lived token at Facebook. status=%s", response.Status)
+		rb, _ := ioutil.ReadAll(response.Body)
+		logrus.Debugf("FB: %s", string(rb))
+		c.JSON(400, gin.H{"message": "Couldn't get long lived token at Facebook"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "400").Inc()
+		return
+	}
+
+	rm := make(map[string]interface{})
+	data, _ := ioutil.ReadAll(response.Body)
+	err = json.Unmarshal(data, &rm)
+	if err != nil {
+		logrus.Debugf("Couldn't parse FB body contents for long lived token request. body=%s err=%s", string(data), err)
+		c.JSON(500, gin.H{"message": "Couldn't parse FB body contents"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+		return
+	}
+	facebookToken0, exists := rm["access_token"]
+	if !exists {
+		logrus.Debugf("FB body contents for long lived token don't contain 'access_token'. body=%s", err)
+		c.JSON(500, gin.H{"message": "Couldn't parse FB body contents"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+		return
+	}
+	facebookToken := facebookToken0.(string)
 
 	logrus.Debugf("Checking facebook token validity")
 	token, success := processFacebookToken(c, facebookToken, pmethod, ppath)
@@ -249,7 +296,7 @@ func validateUserAndOutputTokensToResponse(u *User, c *gin.Context, pmethod stri
 }
 
 func processFacebookToken(c *gin.Context, facebookToken string, pmethod string, ppath string) (map[string]string, bool) {
-	logrus.Debugf("FB token=%s", facebookToken)
+	// logrus.Debugf("FB token=%s", facebookToken)
 	furl := fmt.Sprintf("https://graph.facebook.com/me?fields=email,name&access_token=%s", facebookToken)
 	response, err := http.Get(furl)
 	if err != nil {
@@ -277,9 +324,8 @@ func processFacebookToken(c *gin.Context, facebookToken string, pmethod string, 
 	}
 
 	//FB bug: https://stackoverflow.com/questions/13510458/golang-convert-iso8859-1-to-utf8
-	// token["name"] = toUtf8(token["name"])
 	token["email"] = toUtf8(token["email"])
-	logrus.Debugf("FB token=%v", token)
+	// logrus.Debugf("FB token=%v", token)
 
 	return token, true
 }
@@ -370,17 +416,17 @@ func tokenRefresh() func(*gin.Context) {
 			socialToken = facebookToken
 		}
 
-		// if authType == "google" {
-		// 	googleToken0, exists := claims["googleToken"]
-		// 	if !exists {
-		// 		logrus.Warnf("Refresh token valid but doesn't have 'googleToken' claim")
-		// 		c.JSON(450, gin.H{"message": "Invalid refresh token"})
-		// 		invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
-		// 		return
-		// 	}
-		// 	googleToken := googleToken0.(string)
-		// 	socialToken = googleToken
-		// }
+		if authType == "google" {
+			googleToken0, exists := claims["googleToken"]
+			if !exists {
+				logrus.Warnf("Refresh token valid but doesn't have 'googleToken' claim")
+				c.JSON(450, gin.H{"message": "Invalid refresh token"})
+				invocationCounter.WithLabelValues(pmethod, ppath, "450").Inc()
+				return
+			}
+			googleToken := googleToken0.(string)
+			socialToken = googleToken
+		}
 
 		validateUserAndOutputTokensToResponse(&u, c, pmethod, ppath, authType, socialToken)
 		logrus.Debugf("Token refresh for %s", email)

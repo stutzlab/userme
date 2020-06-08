@@ -40,9 +40,13 @@ services:
       # - MAX_INCORRECT_PASSWORD_RETRIES   '5'
       # - PASSWORD_VALIDATION_REGEX         ^.{6,30}$
       # - PASSWORD_EXPIRATION_DAYS=1
+      # - FACEBOOK_CLIENT_ID
+      # - FACEBOOK_CLIENT_SECRET
       - JWT_SIGNING_METHOD=ES256
       # - JWT_SIGNING_KEY_FILE=/run/secrets/jwt-private-key
       # - MASTER_PUBLIC_KEY_FILE            '/secrests/master-public-key'
+      - FACEBOOK_CLIENT_ID=884133135440365
+      - FACEBOOK_CLIENT_SECRET=
     secrets:
       - jwt-signing-key
 

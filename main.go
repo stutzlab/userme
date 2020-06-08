@@ -50,6 +50,11 @@ type options struct {
 	mailResetPasswordSubject  string
 	mailResetPasswordHTMLBody string
 	mailTokensTests           string
+
+	googleClientID       string
+	googleClientSecret   string
+	facebookClientID     string
+	facebookClientSecret string
 }
 
 var (
@@ -94,6 +99,11 @@ func main() {
 	mailResetPasswordSubject0 := flag.String("mail-password-reset-subject", "", "Mail password reset subject")
 	mailResetPasswordHTML0 := flag.String("mail-password-reset-html", "", "Mail password reset html body. Use placeholders EMAIL, DISPLAY_NAME and ACTIVATION_TOKEN as templating")
 	mailTokensTests0 := flag.String("mail-tokens-tests", "", "Send mail tokens to response headers. Useful for testing enviroments. NEVER use this in production as this makes second factor (e-mail) invalid for our application.")
+
+	facebookClientID0 := flag.String("facebook-client-id", "", "Facebook Application Client ID")
+	facebookClientSecret0 := flag.String("facebook-client-secret", "", "Facebook Application Client Secret")
+	googleClientID0 := flag.String("google-client-id", "", "Google Application Client ID")
+	googleClientSecret0 := flag.String("google-client-secret", "", "Google Application Client Secret")
 
 	flag.Parse()
 
@@ -147,6 +157,11 @@ func main() {
 		mailActivationSubject:     *mailActivationSubject0,
 		mailActivationHTMLBody:    *mailActivationHTML0,
 		mailTokensTests:           *mailTokensTests0,
+
+		googleClientID:       *googleClientID0,
+		googleClientSecret:   *googleClientSecret0,
+		facebookClientID:     *facebookClientID0,
+		facebookClientSecret: *facebookClientSecret0,
 	}
 
 	if opt.dbDialect != "sqlite3" {
@@ -171,7 +186,14 @@ func main() {
 			logrus.Errorf("--mail-activation-subject and --mail-activation-html must be non empty when activation method is 'mail'")
 			os.Exit(1)
 		}
+	}
 
+	if opt.googleClientID == "" || opt.googleClientSecret == "" {
+		logrus.Warnf("Disabling Google login support. Google client id and secret were not defined.")
+	}
+
+	if opt.facebookClientID == "" || opt.facebookClientSecret == "" {
+		logrus.Warnf("Disabling Facebook login support. Facebook client id and secret were not defined.")
 	}
 
 	sm := jwt.GetSigningMethod(opt.jwtSigningMethod)

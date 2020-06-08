@@ -199,7 +199,7 @@ curl --location --request GET 'http://localhost:7000/token' \
 
 * LOG_LEVEL - Application log details level. defaults to 'info'
 * CORS_ALLOWED_ORIGINS - Browser origin domains allowed to invoke this service. defaults to '*'
-* ACCESS_TOKEN_EXPIRATION_MINUTES - Access Token expiration time after creation. This is the token used in requests to the server. If you want to extend this time, use a Refresh Token to get a new Access Token at endpoint /token/refresh. defaults to '480'
+* ACCESS_TOKEN_EXPIRATION_MINUTES - Access Token expiration time after creation. This is the token used in requests to the server. If you want to extend this time, use a Refresh Token to get a new Access Token at endpoint /token/refresh. defaults to '30'
 * REFRESH_TOKEN_EXPIRATION_MINUTES - Refresh token expiration time. This token can be used to get new Access Tokens, but we will verify if this account is enabled/unlock before doing so. Probably much higher than access tokens expiration because this token can be used to extend long time authentications, for example, for supporting mobile applications to keep authenticated after being closed etc. defaults to '40320'
 * VALIDATION_TOKEN_EXPIRATION_MINUTES - Validation token expiration in minutes. This is the time the link sent to email will remain valid. defaults to '20'
 * PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES - Password reset token expiration in minutes. This is the time the link sent to email will remain valid. defaults to '5'
