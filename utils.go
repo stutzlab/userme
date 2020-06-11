@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -135,4 +137,40 @@ func loadAndValidateToken(req *http.Request, tokenType string, email string) (jw
 	}
 
 	return claims, nil
+}
+
+func requestURLWithJsonResponse(method string, url string, body string, contentType string, customHeaders map[string]string, expectedStatus int) (map[string]interface{}, error) {
+	b := strings.NewReader(body)
+	req, err := http.NewRequest(method, url, b)
+	if err != nil {
+		return nil, err
+	}
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	if customHeaders != nil {
+		for k, v := range customHeaders {
+			req.Header.Set(k, v)
+		}
+	}
+
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != expectedStatus {
+		rb, _ := ioutil.ReadAll(response.Body)
+		return nil, fmt.Errorf("Response for url=%s status=%d body=%s", url, response.StatusCode, string(rb))
+	}
+
+	resp := make(map[string]interface{})
+	data, _ := ioutil.ReadAll(response.Body)
+	err2 := json.Unmarshal(data, &resp)
+	if err2 != nil {
+		logrus.Debugf("Cannot parse json response. Ignoring.")
+	}
+
+	return resp, nil
 }
