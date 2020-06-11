@@ -4,7 +4,8 @@ Userme gives you a bunch of API services for basic account creation, token valid
 <img src="signup.png" width="700" />
 <img src="signin.png" width="700" />
 
-See a full usage example at http://github.com/stutzlab/userme-demo-ui
+See a full usage example at http://github.com/stutzlab/userme-demo-ui. 
+  * This sample has support for local password login, Facebook and Google logins.
 
 ## Basics
 
@@ -163,8 +164,10 @@ curl --location --request GET 'http://localhost:7000/token' \
     * 500 - server error
 
 * POST /token
-  * request json body: email + password OR googleToken OR facebookToken
+  * request json body: email + password OR googleAuthCode OR facebookToken
     * social tokens are validated against providers and if valid will have the same effect as a valid password
+    * For Facebook instructions on how to get a token from the browser: https://developers.facebook.com/docs/facebook-login/web/accesstokens
+    * For Google instructions on how to get an Authorization Code from the browser: https://developers.google.com/identity/protocols/oauth2/web-server
   * response status
     * 200 - token created
     * 450 - invalid/inexistent email/password combination

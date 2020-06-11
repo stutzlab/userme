@@ -143,10 +143,6 @@ func processGoogleRefreshToken(c *gin.Context, googleRefreshToken string, pmetho
 	logrus.Debugf("Getting Google Access Token from Refresh token")
 
 	headers := make(map[string]string)
-	// headers["authority"] = "www.googleapis.com"
-	// headers["Host"] = "www.googleapis.com"
-	// headers["User-Agent"] = "curl/7.64.1"
-	// headers["Accept"] = "*/*"
 	body := fmt.Sprintf(`client_id=%s&client_secret=%s&grant_type=refresh_token&refresh_token=%s`, opt.googleClientID, opt.googleClientSecret, googleRefreshToken)
 	resp, err := requestURLWithJsonResponse("POST", "https://accounts.google.com/o/oauth2/token", body, "application/x-www-form-urlencoded", headers, 200)
 	if err != nil {
