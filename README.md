@@ -1,11 +1,21 @@
 # userme
 Userme gives you a bunch of API services for basic account creation, token validation, user authentication, password reset, mail validation etc
 
-<img src="signup.png" width="700" />
-<img src="signin.png" width="700" />
+<img src="docs/signup.png" width="700" />
+<img src="docs/signin.png" width="700" />
 
 See a full usage example at http://github.com/stutzlab/userme-demo-ui. 
   * This sample has support for local password login, Facebook and Google logins.
+
+### New Account with local password
+<img src="docs/userme-new-account.gif" width="360" />
+
+### Facebook signin support
+<img src="docs/userme-facebook.gif" width="360" />
+
+### Google signin support
+<img src="docs/userme-google.gif" width="360" />
+
 
 ## Basics
 
@@ -24,6 +34,8 @@ See a full usage example at http://github.com/stutzlab/userme-demo-ui.
 * For a successful access token creation from refresh tokens
   * The account must be enabled
   * The password must be still valid (not expired)
+* Social logins
+  * If account enabled and a valid social (Facebook/Google) token is acquired, a Userme JWT token along with refresh tokens will be created and it can be used in the same way as a local email/password is used.
 * In future we may add TOTP capabilities too. Please contribute on that!
 
 ## Usage
