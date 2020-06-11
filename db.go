@@ -23,7 +23,9 @@ type User struct {
 	WrongPasswordDate  *time.Time
 	PasswordValidUntil *time.Time
 	CreationDate       time.Time `gorm:"not null; default:CURRENT_TIMESTAMP"`
-	Enabled            uint8     `gorm:"not null; default:1"`
+	LastTokenType      *string
+	LastTokenDate      *time.Time
+	Enabled            uint8 `gorm:"not null; default:1"`
 }
 
 func initDB() (*gorm.DB, error) {

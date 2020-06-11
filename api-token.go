@@ -94,13 +94,9 @@ func processLocalPasswordLogin(m map[string]string, c *gin.Context, pmethod stri
 		logrus.Infof("Invalid password for %s", email)
 
 		logrus.Debugf("Increment wrong password counters")
-		err = db.Model(&u).UpdateColumn("wrong_password_count", u.WrongPasswordCount+1).Error
+		err = db.Model(&u).UpdateColumn("wrong_password_count", u.WrongPasswordCount+1, "wrong_password_date", time.Now()).Error
 		if err != nil {
 			logrus.Warnf("Couldn't increment wrong password count for %s. err=%s", email, err)
-		}
-		err = db.Model(&u).UpdateColumn("wrong_password_date", time.Now()).Error
-		if err != nil {
-			logrus.Warnf("Couldn't update wrong password date for %s. err=%s", email, err)
 		}
 
 		c.JSON(450, gin.H{"message": "Email/password not valid"})
@@ -178,6 +174,11 @@ func validateUserAndOutputTokensToResponse(u *User, c *gin.Context, pmethod stri
 		return
 	}
 
+	err = db.Model(&u).UpdateColumn("last_token_type", authType, "last_token_date", time.Now()).Error
+	if err != nil {
+		logrus.Warnf("Couldn't update last_token_type/date for %s. err=%s", u.Email, err)
+	}
+
 	c.JSON(200, tokensResponse)
 	invocationCounter.WithLabelValues(pmethod, ppath, "200").Inc()
 	logrus.Debugf("Tokens for %s generated and sent to response", u.Name)
@@ -244,10 +245,16 @@ func tokenRefresh() func(*gin.Context) {
 			socialToken = socialToken0.(string)
 
 			if authType == "facebook" {
-				temail, _, ok := processFacebookToken(c, socialToken, pmethod, ppath)
-				if !ok {
+				temail, _, success := processFacebookToken(c, socialToken, pmethod, ppath)
+				if !success {
 					return
 				}
+
+				socialToken1, success := processFacebookRefreshToken(c, socialToken, pmethod, ppath)
+				if !success {
+					return
+				}
+				socialToken = socialToken1
 
 				if email != temail {
 					logrus.Warnf("Refresh token valid but 'socialToken' is for another email. %s!=%s", temail, email)
@@ -257,7 +264,7 @@ func tokenRefresh() func(*gin.Context) {
 				}
 
 			} else if authType == "google" {
-				temail, _, success := processGoogleRefreshAccessToken(c, socialToken, pmethod, ppath)
+				temail, _, success := processGoogleRefreshToken(c, socialToken, pmethod, ppath)
 				if !success {
 					return
 				}
