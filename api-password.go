@@ -16,7 +16,7 @@ func (h *HTTPServer) setupPasswordHandlers() {
 	h.router.POST("/user/:email/password-reset-request", passwordResetRequest())
 	h.router.POST("/user/:email/password-reset-change", passwordResetChange())
 	h.router.POST("/user/:email/password-change", passwordChange())
-	h.router.POST("/user/:email/password-change-form", passwordChangeForm())
+	// h.router.POST("/user/:email/password-change-form", passwordChangeForm()) // Must block firewall access
 }
 
 func passwordResetRequest() func(*gin.Context) {
