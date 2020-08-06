@@ -16,6 +16,7 @@ func (h *HTTPServer) setupPasswordHandlers() {
 	h.router.POST("/user/:email/password-reset-request", passwordResetRequest())
 	h.router.POST("/user/:email/password-reset-change", passwordResetChange())
 	h.router.POST("/user/:email/password-change", passwordChange())
+	h.router.POST("/user/:email/password-change-form", passwordChangeForm())
 }
 
 func passwordResetRequest() func(*gin.Context) {
@@ -154,6 +155,39 @@ func passwordChange() func(*gin.Context) {
 
 		logrus.Debugf("Current password is valid for password change of %s", email)
 
+		validateAndChangePassword(email, m, c, pmethod, ppath)
+	}
+}
+
+func passwordChangeForm() func(*gin.Context) {
+	return func(c *gin.Context) {
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
+
+		email := strings.ToLower(c.Param("email"))
+		logrus.Debugf("passwordChange email=%s", email)
+
+		_, err := loadAndValidateToken(c.Request, "access", email)
+
+		var u User
+		err = db.First(&u, "email = ? AND activation_date IS NOT NULL AND enabled = 1", email).Error
+		if err != nil {
+			c.JSON(455, gin.H{"message": "Invalid account"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "455").Inc()
+			return
+		}
+
+		logrus.Debugf("Verifying current password for %s", email)
+		m := make(map[string]string)
+		data, _ := ioutil.ReadAll(c.Request.Body)
+		err = json.Unmarshal(data, &m)
+		if err != nil {
+			c.JSON(500, gin.H{"message": fmt.Sprintf("Couldn't parse body contents. err=%s", err)})
+			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+			return
+		}
+		logrus.Debugf("Current password is valid for password change of %s", email)
+		
 		validateAndChangePassword(email, m, c, pmethod, ppath)
 	}
 }
