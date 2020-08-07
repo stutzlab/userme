@@ -17,6 +17,7 @@ func (h *HTTPServer) setupUserHandlers() {
 	h.router.PUT("/user/:email", createUser())
 	h.router.POST("/user/:email/activate", activateUser())
 	// h.router.POST("/user/:email/disable", disableUser())
+	// h.router.POST("/user/:email/delete", deleteUser()) // Must block firewall access 
 }
 
 func createUser() func(*gin.Context) {
@@ -216,5 +217,30 @@ func activateUser() func(*gin.Context) {
 		c.JSON(202, tokensResponse)
 		invocationCounter.WithLabelValues(pmethod, ppath, "202").Inc()
 		logrus.Debugf("Account %s activated successfuly", email)
+	}
+}
+
+func deleteUser() func(*gin.Context) {
+	return func(c *gin.Context) {
+		pmethod := c.Request.Method
+		ppath := c.FullPath()
+
+		email := strings.ToLower(c.Param("email"))
+		logrus.Debugf("deleteUser email=%s", email)
+
+		_, err := loadAndValidateToken(c.Request, "activation", email)
+
+		var u User
+		err = db.Delete(&u, "email = ?", email).Error
+		if err != nil {
+			logrus.Warnf("Error deleting user. email=%s err=%s", email, err)
+			c.JSON(500, gin.H{"message": "Server error"})
+			invocationCounter.WithLabelValues(pmethod, ppath, "500").Inc()
+			return
+		}
+
+		c.JSON(200, gin.H{"message": "Account deleted successfuly"})
+		invocationCounter.WithLabelValues(pmethod, ppath, "202").Inc()
+		logrus.Debugf("Account %s deleted successfuly", email)
 	}
 }
